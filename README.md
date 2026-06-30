@@ -2,7 +2,9 @@
 
 > Convert any webpage into clean, LLM-ready Markdown in one click. Strip the clutter, preserve the layout, and copy or download instantly.
 
-Pagemark is a modern web extension designed for researchers, developers, and AI engineers. It extracts the core content of any webpage and converts it into structured, optimized Markdown—perfect for feeding directly into LLMs (like GPT, Claude, Gemini) or storing in your personal knowledge base.
+![pagemark-1](./pagemark-thumbnail-1.jpg)
+
+Pagemark is a modern web extension designed for researchers, developers, and AI engineers. It extracts the core content of any webpage and converts it into structured, optimized Markdown, perfect for feeding directly into LLMs (like GPT, Claude, Gemini) or storing in your personal knowledge base.
 
 ## How It Works
 
@@ -66,6 +68,8 @@ This runs the Plasmo dev server and generates an active development build folder
 5. Select the **`build/chrome-mv3-dev`** folder in this project directory.
 
 The Pagemark sidebar icon will now appear in your toolbar!
+
+![pagemark-2](./pagemark-thumbnail-2.jpg)
 
 ## Building for Production
 
