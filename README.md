@@ -2,9 +2,11 @@
 
 > Convert any webpage into clean, LLM-ready Markdown in one click. Strip the clutter, preserve the layout, and copy or download instantly.
 
-![pagemark-1](./pagemark-thumbnail-1.jpg)
+![pagemark-1](./pagemark-thumb-1.jpg)
 
 Pagemark is a modern web extension designed for researchers, developers, and AI engineers. It extracts the core content of any webpage and converts it into structured, optimized Markdown, perfect for feeding directly into LLMs (like GPT, Claude, Gemini) or storing in your personal knowledge base.
+
+> Install it through the **[Chrome Web Store](https://chromewebstore.google.com/detail/pagemark/dpnfgohhgehakmknbnpgojaalglhaeej)**, or download it directly from the **[latest release](https://github.com/rafifmsn/pagemark/releases/tag/1.0.0)**.
 
 ## How It Works
 
@@ -69,7 +71,7 @@ This runs the Plasmo dev server and generates an active development build folder
 
 The Pagemark sidebar icon will now appear in your toolbar!
 
-![pagemark-2](./pagemark-thumbnail-2.jpg)
+![pagemark-2](./pagemark-thumb-2.jpg)
 
 ## Building for Production
 
@@ -81,6 +83,8 @@ npm run build
 
 The production output will be generated inside the **`build/chrome-mv3-prod`** folder, ready to be packaged or loaded unpacked for daily use.
 
+> Note: While the extension's Plasmo framework makes cross-browser builds possible, the Firefox version has not been fully tested yet. Additionally, Firefox users must manually change the extension shortcut, as the default `Ctrl/Cmd + Shift + K` is already reserved for the Firefox Web Console.
+
 ## Tech Stack
 
 - **Framework**: [Plasmo](https://plasmo.com/) (MV3)
@@ -89,4 +93,4 @@ The production output will be generated inside the **`build/chrome-mv3-prod`** f
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
+Distributed under the MIT License. See **[LICENSE](https://www.google.com/search?q=LICENSE)** for more details. This project is a continuation of **[Adem Kouki](https://github.com/Ademking/MD-This-Page)**'s work.
