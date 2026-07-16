@@ -1,7 +1,7 @@
 {
   "name": "pagemark",
   "displayName": "Pagemark",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert web page to markdown with one click",
   "author": "Rafif Muchsin <rafif@rafifmsn.com>",
   "scripts": {
