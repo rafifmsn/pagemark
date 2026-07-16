@@ -1,5 +1,6 @@
 import Markdown from "markdown-to-jsx/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { isRestrictedUrl, generatePageMap } from "../utils/helpers"
 
 import "./style.css"
 
@@ -191,75 +192,7 @@ const RefreshIcon = (props: any) => (
     </svg>
 )
 
-interface HeadingNode {
-    text: string
-    level: number
-    children: HeadingNode[]
-}
 
-function generatePageMap(
-    markdown: string,
-    title: string = "Document Structure"
-): string {
-    const lines = markdown.split("\n")
-    const headings: { level: number; text: string }[] = []
-
-    lines.forEach((line) => {
-        const match = line.match(/^(#{1,6})\s+(.+)$/)
-        if (match) {
-            headings.push({ level: match[1].length, text: match[2].trim() })
-        }
-    })
-
-    if (headings.length === 0) return ""
-
-    const root: HeadingNode = { text: title, level: 0, children: [] }
-    const stack: HeadingNode[] = [root]
-
-    headings.forEach((h) => {
-        const node: HeadingNode = { text: h.text, level: h.level, children: [] }
-        while (stack.length > 1 && stack[stack.length - 1].level >= h.level) {
-            stack.pop()
-        }
-        stack[stack.length - 1].children.push(node)
-        stack.push(node)
-    })
-
-    let mapStr = `${title}\n`
-
-    function renderNode(
-        node: HeadingNode,
-        prefix: string,
-        isLast: boolean,
-        isRoot: boolean
-    ) {
-        if (!isRoot) {
-            const connector = isLast ? "└── " : "├── "
-            mapStr += `${prefix}${connector}${node.text}\n`
-
-            if (node.children.length > 0) {
-                const childPrefix = prefix + (isLast ? "    " : "│   ")
-                node.children.forEach((child, index) => {
-                    renderNode(
-                        child,
-                        childPrefix,
-                        index === node.children.length - 1,
-                        false
-                    )
-                })
-            }
-        } else {
-            node.children.forEach((child, index) => {
-                renderNode(child, "", index === node.children.length - 1, false)
-            })
-        }
-    }
-
-    renderNode(root, "", true, true)
-    mapStr = mapStr.replace(/│\n$/g, "").trimEnd()
-
-    return "# Page Structure Map\n```text\n" + mapStr + "\n```\n"
-}
 
 export default function MarkdownPage() {
     const [markdown, setMarkdown] = useState("")
@@ -281,6 +214,19 @@ export default function MarkdownPage() {
         showPageMap: true
     })
     const [settingsLoaded, setSettingsLoaded] = useState(false)
+    const settingsRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (showSettings && settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+                setShowSettings(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+        }
+    }, [showSettings])
 
     // Load settings once on mount
     useEffect(() => {
@@ -332,12 +278,7 @@ export default function MarkdownPage() {
                     return
                 }
                 const activeTab = tabs?.[0]
-                if (activeTab?.url && (
-                    activeTab.url.startsWith("chrome://") ||
-                    activeTab.url.startsWith("brave://") ||
-                    activeTab.url.startsWith("about:") ||
-                    activeTab.url.includes("chromewebstore.google.com")
-                )) {
+                if (activeTab?.url && isRestrictedUrl(activeTab.url)) {
                     setError("This page cannot be clipped (restricted browser system page).")
                     setStatus("")
                     return
@@ -515,44 +456,72 @@ export default function MarkdownPage() {
         setMarkdown(finalMd)
     }, [pageData, toggles])
 
-    useEffect(() => {
-        if (markdown && !hasAutoCopied && typeof navigator !== "undefined" && navigator.clipboard) {
-            if (document.hasFocus()) {
+    const delegateCopyToContentScript = (text: string, onSuccess: () => void, isAuto: boolean) => {
+        if (typeof chrome !== "undefined" && chrome.tabs) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                const activeTab = tabs?.[0]
+                if (activeTab?.id && !isRestrictedUrl(activeTab.url || "")) {
+                    chrome.tabs.sendMessage(
+                        activeTab.id,
+                        { action: "copy-to-clipboard", text },
+                        (response) => {
+                            if (chrome.runtime?.lastError) {
+                                if (isAuto) setPendingAutoCopy(true)
+                                return
+                            }
+                            if (response && response.success) {
+                                onSuccess()
+                            } else {
+                                if (isAuto) setPendingAutoCopy(true)
+                            }
+                        }
+                    )
+                } else {
+                    if (isAuto) setPendingAutoCopy(true)
+                }
+            })
+        } else {
+            if (isAuto) setPendingAutoCopy(true)
+        }
+    }
+
+    const copyMarkdown = (text: string, isAuto: boolean) => {
+        if (!text) return
+
+        const showSuccessStatus = () => {
+            setStatus(isAuto ? "Auto-copied!" : "Copied!")
+            if (isAuto) {
                 setHasAutoCopied(true)
                 setPendingAutoCopy(false)
-                navigator.clipboard
-                    .writeText(markdown)
-                    .then(() => {
-                        setStatus("Auto-copied!")
-                        setTimeout(() => setStatus(""), 2000)
-                    })
-                    .catch((err) => {
-                        if (err?.name !== "NotAllowedError") {
-                            console.warn("Auto-copy failed:", err)
-                        }
-                    })
-            } else {
-                setPendingAutoCopy(true)
             }
+            setTimeout(() => setStatus(""), 2000)
+        }
+
+        // Try local copy first
+        if (typeof navigator !== "undefined" && navigator.clipboard && document.hasFocus()) {
+            navigator.clipboard
+                .writeText(text)
+                .then(() => {
+                    showSuccessStatus()
+                })
+                .catch((localErr) => {
+                    delegateCopyToContentScript(text, showSuccessStatus, isAuto)
+                })
+        } else {
+            delegateCopyToContentScript(text, showSuccessStatus, isAuto)
+        }
+    }
+
+    useEffect(() => {
+        if (markdown && !hasAutoCopied) {
+            copyMarkdown(markdown, true)
         }
     }, [markdown, hasAutoCopied])
 
     useEffect(() => {
         const handleFocus = () => {
-            if (pendingAutoCopy && markdown && !hasAutoCopied && typeof navigator !== "undefined" && navigator.clipboard) {
-                setHasAutoCopied(true)
-                setPendingAutoCopy(false)
-                navigator.clipboard
-                    .writeText(markdown)
-                    .then(() => {
-                        setStatus("Auto-copied!")
-                        setTimeout(() => setStatus(""), 2000)
-                    })
-                    .catch((err) => {
-                        if (err?.name !== "NotAllowedError") {
-                            console.warn("Auto-copy failed on focus:", err)
-                        }
-                    })
+            if (pendingAutoCopy && markdown && !hasAutoCopied) {
+                copyMarkdown(markdown, true)
             }
         }
         window.addEventListener("focus", handleFocus)
@@ -637,7 +606,7 @@ export default function MarkdownPage() {
                         )}
                     </div>
                     <div className="flex items-center gap-1">
-                        <div className="relative">
+                        <div className="relative" ref={settingsRef}>
                             <button
                                 onClick={() => setShowSettings(!showSettings)}
                                 title="Settings & Filters"

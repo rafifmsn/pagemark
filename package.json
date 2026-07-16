@@ -1,7 +1,7 @@
 {
   "name": "pagemark",
   "displayName": "Pagemark",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert web page to markdown with one click",
   "author": "Rafif Muchsin <rafif@rafifmsn.com>",
   "scripts": {
@@ -11,9 +11,10 @@
     "build": "plasmo build",
     "build:source": "plasmo build --source-maps",
     "build:chrome": "plasmo build --target=chrome-mv3 --zip",
-    "build:firefox": "plasmo build --target=firefox-mv3 --zip --source-maps",
+    "build:firefox": "plasmo build --target=firefox-mv3 --zip",
     "package": "plasmo package",
-    "build:all": "pnpm run build:chrome && pnpm run build:firefox"
+    "build:all": "pnpm run build:chrome && pnpm run build:firefox",
+    "test": "vitest run"
   },
   "dependencies": {
     "defuddle": "^0.13.0",
@@ -45,20 +46,25 @@
     "postcss": "^8.5.10",
     "prettier": "3.2.4",
     "tailwindcss": "3",
-    "typescript": "5.3.3"
+    "typescript": "5.3.3",
+    "vitest": "^4.1.10"
   },
   "manifest": {
     "permissions": [
       "activeTab",
       "contextMenus",
       "storage",
-      "sidePanel"
+      "sidePanel",
+      "clipboardWrite"
+    ],
+    "host_permissions": [
+      "<all_urls>"
     ],
     "commands": {
       "convert-to-markdown": {
         "suggested_key": {
-          "default": "Ctrl+Shift+K",
-          "mac": "Command+Shift+K"
+          "default": "Alt+K",
+          "mac": "Alt+K"
         },
         "description": "Convert current page to Markdown"
       }

@@ -1,8 +1,13 @@
+import type { PlasmoCSConfig } from "plasmo"
 import { Defuddle } from "defuddle-js"
 import TurndownService from "turndown"
 import { gfm } from "turndown-plugin-gfm"
 
-export {}
+export const config: PlasmoCSConfig = {
+  matches: ["<all_urls>"],
+  run_at: "document_start"
+}
+
 
 function convertPageToMarkdown() {
   let article: any = null
@@ -150,8 +155,46 @@ function convertPageToMarkdown() {
   })
 }
 
+function copyTextToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text)
+  }
+  return new Promise((resolve, reject) => {
+    try {
+      const textArea = document.createElement("textarea")
+      textArea.value = text
+      textArea.style.top = "0"
+      textArea.style.left = "0"
+      textArea.style.position = "fixed"
+      textArea.style.opacity = "0"
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      const successful = document.execCommand("copy")
+      document.body.removeChild(textArea)
+      if (successful) {
+        resolve()
+      } else {
+        reject(new Error("execCommand copy failed"))
+      }
+    } catch (err) {
+      reject(err)
+    }
+  })
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "convert-to-markdown") {
     convertPageToMarkdown()
+  } else if (request.action === "copy-to-clipboard") {
+    copyTextToClipboard(request.text)
+      .then(() => {
+        sendResponse({ success: true })
+      })
+      .catch((err) => {
+        console.warn("Content script failed to copy:", err)
+        sendResponse({ success: false, error: err?.message || "Unknown error" })
+      })
+    return true // keep channel open for async response
   }
 })

@@ -88,6 +88,11 @@ The contextMenus permission is used to add a "Pagemark this page" option to the 
 The storage permission is used to persist the user's layout preferences (such as toggling image tags, keeping active links, or prepending headers) locally within the browser, ensuring their preferred configuration is maintained across browser restarts.
 ```
 
+### clipboardWrite justification
+```text
+The clipboardWrite permission is used to automatically copy the generated Markdown output to the user's clipboard immediately after conversion. This provides a seamless, one-click experience for pasting clean webpage context directly into other applications or AI models without requiring manual copy steps.
+```
+
 ### Host permission justification
 ```text
 The `<all_urls>` match pattern is required to inject the content script onto the active webpage when requested. This allows the extension to retrieve the HTML structure of the current webpage and perform local markdown conversion, regardless of the website's domain.

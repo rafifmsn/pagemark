@@ -1,6 +1,12 @@
 # Pagemark
 
-> Convert any webpage into clean, LLM-ready Markdown in one click. Strip the clutter, preserve the layout, and copy or download instantly.
+![GitHub Release](https://img.shields.io/github/v/release/rafifmsn/pagemark)
+![Plasmo](https://img.shields.io/badge/built__with-Plasmo-blueviolet)
+![License](https://img.shields.io/github/license/rafifmsn/pagemark)
+
+[![Get it from the Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Download-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/dpnfgohhgehakmknbnpgojaalglhaeej)
+[![Get it from Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-Download-FF7100?style=for-the-badge&logo=firefox-browser&logoColor=white)](https://addons.mozilla.org/firefox/addon/pagemark)
+
 
 ![pagemark-1](./pagemark-thumb-1.jpg)
 
@@ -14,7 +20,7 @@ Pagemark is a modern web extension designed for researchers, developers, and AI 
 2. **Trigger**:
    - Right-click anywhere and select **"Pagemark this page"**, OR
    - Click the extension icon in your browser toolbar, OR
-   - Press the hotkey **`Ctrl + Shift + K`** (or **`Cmd + Shift + K`** on macOS, configurable in `chrome://extensions/shortcuts`).
+   - Press the hotkey **`Alt + K`** (or **`Option + K`** on macOS, configurable in `chrome://extensions/shortcuts` or `about:addons` on Firefox).
 3. **Clip & Copy**: The side panel opens instantly, showing the live markdown, which is automatically copied to your clipboard (optional) or ready to download.
 
 ## Features
@@ -83,7 +89,7 @@ npm run build
 
 The production output will be generated inside the **`build/chrome-mv3-prod`** folder, ready to be packaged or loaded unpacked for daily use.
 
-> Note: While the extension's Plasmo framework makes cross-browser builds possible, the Firefox version has not been fully tested yet. Additionally, Firefox users must manually change the extension shortcut, as the default `Ctrl/Cmd + Shift + K` is already reserved for the Firefox Web Console.
+> Note: While the extension's Plasmo framework makes cross-browser builds possible, the Firefox version has not been fully tested yet.
 
 ## Tech Stack
 
