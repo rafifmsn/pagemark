@@ -1,71 +1,41 @@
-# Firefox Add-on Store Submission Guide
-
-Here are the complete answers and listing descriptions for submitting Pagemark to the Firefox Add-on (AMO) Store.
-
----
-
 ## 1. Describe Add-on
 
 ### Name
-```text
+
 Pagemark
-```
 
 ### Summary
-```text
+
 Convert any webpage into clean, LLM-ready Markdown with one click. Strip the clutter, preserve the layout, and copy or download instantly.
-```
 
 ### Description
 ```markdown
-The AI-Ready Markdown Web Clipper. Use Pagemark to turn any website into structured, clean Markdown context in just 1 click!
+Turn any website into clean, structured Markdown context with a single click.
 
-Pagemark turns complex webpages into clean, optimized Markdown instantly — no ads, no clutter, no broken layouts, and no server lags. Just click and copy.
+Pagemark instantly strips away tracking banners, ads, navigation menus, and cookie popups, leaving you with optimized Markdown that is perfectly formatted for Large Language Models (LLMs). Built specifically for developers, AI engineers, researchers, and writers, it serves as a lightweight bridge between the web and tools like Claude, ChatGPT, DeepSeek, and Gemini—helping you feed clean documentation into prompts without wasting API token limits.
 
-Designed specifically for AI engineers, developers, writers, and researchers, Pagemark acts as the ultimate bridge between the web and Large Language Models (LLMs). It perfectly prepares web documentation, articles, and code blocks so ChatGPT, Claude, DeepSeek, and Gemini can read them seamlessly without wasting your API token limits.
+**Key Features**
 
-Whether you need to feed clean documentation into an AI prompt, save tutorials to your personal knowledge base, or archive reference material offline, Pagemark handles it flawlessly.
+* **Local Readability Parser:** Automatically isolates the main body text, articles, and code blocks. Execution happens entirely in your browser with zero server wait times or tracking.
+* **Native Sidebar Workspace:** The extension opens directly in the Firefox sidebar (Alt + K), allowing you to view, edit, and preview the Markdown output side-by-side with the live source page.
+* **Editor & Live Token Counter:** Switch seamlessly between a raw Markdown editor and a fully rendered visual preview. Built-in character and token counters help you monitor size limits before pasting into AI interfaces.
+* **Persistent Customization:** Tailor the extraction to your exact needs. Toggle images and hyperlinks on or off, automatically inject metadata headers (title, source URL, timestamps), or generate a hierarchical outline map of the page headers.
 
-100% Free local processing with zero data tracking. Export to Markdown file, clean plaintext, or LLM-optimized prompt wrappers instantly.
+**Optimized Export Utilities**
 
----------------------------------------------------------------------------------------
+* **Copy MD:** Copies raw, standardized Markdown directly to your clipboard.
+* **Copy as Prompt:** Automatically wraps the text in a clean container to prevent nested triple-backticks from breaking LLM parsers.
+* **Download File:** Saves the structured output natively as a standalone .md file.
 
-### Features
+**Privacy & Performance First**
 
-⚡ Smart Readability Parser
-- Zero server wait times. Isolates the main body text, articles, and code blocks automatically, so you never copy-paste manually again.
-- Strips away distracting navigation menus, tracking banners, popups, cookie consent forms, and footer boilerplate instantly.
-- Local execution ensures maximum speed and total offline capability.
+* **100% Local Processing:** Your data never leaves your machine. No external servers, no logging, and total security for enterprise intranets or local development environments.
+* **Works Offline:** Because the parser runs locally, it works completely offline and requires zero external network dependencies.
+* **No Paywalls or Subscriptions:** Full functionality with no rate limits, daily credits, or premium tiers.
 
-📁 Native Sidebar Workspace
-- The conversion happens directly in your browser's native sidebar, letting you view, edit, and preview your Markdown side-by-side with the live source webpage.
-- No context switching or flipping back and forth between tabs.
+**Usage Shortcuts**
 
-📝 Plaintext Editor & Live Preview Counter
-- Switch fluidly between a raw Markdown code editor and a fully rendered, clean visual preview with responsive data tables.
-- Real-time character and token counters help you gauge exact size limits before pasting into AI interfaces.
-
-⚙️ Persistent Layout Preferences
-- Customize and auto-save your extraction settings for a perfectly tailored workflow:
-  • Toggle Images: Choose to preserve critical graphic tags or completely strip them out.
-  • Toggle Links: Keep active hyperlinks for reference or instantly flatten them to plaintext.
-  • Metadata Headers: Auto-inject page title, source URL, and timezone-aware timestamps.
-  • Outline Map: Generate a hierarchical tree structure outline of page headers instantly.
-
-📥 Versatile Prompt & Export Utilities
-- Copy MD: Grab raw, standardized Markdown to your clipboard in milliseconds.
-- Copy as Prompt: Automatically wraps the text in an error-free code block container, preventing nested triple-backticks from breaking ChatGPT/Claude parser interfaces.
-- Download File: Save the structured output natively as a standalone .md file.
-
----------------------------------------------------------------------------------------
-
-### 🛡️ Why Pagemark?
-
-✅ 1-click simplicity — instant sidebar access via mouse or keyboard shortcuts (Alt + K)
-✅ 100% Privacy First — processed entirely locally inside your browser; no server logs
-✅ Smart LLM Wrapping — custom formatting to prevent nested markdown parsing syntax errors
-✅ Zero Subscriptions — no rate limits, no daily credits, and no paywalls
-✅ Works Offline — complete security for enterprise intranet pages and secure local environments
+Open/Close Sidebar: Alt + K (Can be customized in Firefox Add-on settings)
 ```
 
 ---

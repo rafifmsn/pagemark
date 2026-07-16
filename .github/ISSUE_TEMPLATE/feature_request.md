@@ -1,7 +1,7 @@
 ---
 name: Feature Request
 about: Suggest an idea or enhancement for Pagemark
-title: "[FEATURE] "
+title: ''
 labels: enhancement
 assignees: ''
 
