@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/github/license/rafifmsn/pagemark)
 
 [![Get it from the Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Download-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/dpnfgohhgehakmknbnpgojaalglhaeej)
+[![Get it from Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-Download-FF7100?style=for-the-badge&logo=firefox-browser&logoColor=white)](https://addons.mozilla.org/firefox/addon/pagemark)
 
 
 ![pagemark-1](./pagemark-thumb-1.jpg)
