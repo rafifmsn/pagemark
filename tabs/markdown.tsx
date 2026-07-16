@@ -1,5 +1,5 @@
 import Markdown from "markdown-to-jsx/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import "./style.css"
 
@@ -281,6 +281,19 @@ export default function MarkdownPage() {
         showPageMap: true
     })
     const [settingsLoaded, setSettingsLoaded] = useState(false)
+    const settingsRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (showSettings && settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+                setShowSettings(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+        }
+    }, [showSettings])
 
     // Load settings once on mount
     useEffect(() => {
@@ -640,7 +653,7 @@ export default function MarkdownPage() {
                         )}
                     </div>
                     <div className="flex items-center gap-1">
-                        <div className="relative">
+                        <div className="relative" ref={settingsRef}>
                             <button
                                 onClick={() => setShowSettings(!showSettings)}
                                 title="Settings & Filters"
