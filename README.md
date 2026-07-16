@@ -1,6 +1,11 @@
 # Pagemark
 
-> Convert any webpage into clean, LLM-ready Markdown in one click. Strip the clutter, preserve the layout, and copy or download instantly.
+![GitHub Release](https://img.shields.io/github/v/release/rafifmsn/pagemark)
+![Plasmo](https://img.shields.io/badge/built__with-Plasmo-blueviolet)
+![License](https://img.shields.io/github/license/rafifmsn/pagemark)
+
+[![Get it from the Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Download-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/dpnfgohhgehakmknbnpgojaalglhaeej)
+
 
 ![pagemark-1](./pagemark-thumb-1.jpg)
 

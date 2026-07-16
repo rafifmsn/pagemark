@@ -1,4 +1,4 @@
-export {}
+import { isRestrictedUrl } from "./utils/helpers"
 
 // Set sidepanel behavior on install/startup
 if (typeof chrome !== "undefined" && chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
@@ -30,13 +30,7 @@ const handleConvertToMarkdown = (tab: chrome.tabs.Tab, toggle = false) => {
   if (!tab?.id) return
 
   // Guard against restricted/internal browser pages
-  if (tab.url && (
-    tab.url.startsWith("about:") || 
-    tab.url.startsWith("chrome://") || 
-    tab.url.startsWith("edge://") || 
-    tab.url.startsWith("moz-extension://") || 
-    tab.url.startsWith("chrome-extension://")
-  )) {
+  if (tab.url && isRestrictedUrl(tab.url)) {
     console.log("Pagemark cannot run on restricted or internal browser pages.")
     return
   }

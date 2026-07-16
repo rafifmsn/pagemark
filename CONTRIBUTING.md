@@ -1,47 +1,79 @@
 # Contributing to Pagemark
 
-Thank you for your interest in contributing to Pagemark! Below are guidelines and instructions to help you get started with local development.
+Thank you for your interest in contributing to Pagemark! We want to make contributing as clean, safe, and productive as possible.
 
-## Project Architecture
-Pagemark is built on the **Plasmo** extension framework, using React, TypeScript, and TailwindCSS.
+---
 
-* **`content.ts`**: The content script that parses webpage HTML into clean content using `defuddle-js` and `turndown`. It is configured declaratively to run on all URLs (`<all_urls>`) to enable automatic, zero-click parsing on tab switch.
-* **`background.ts`**: Handles the extension's lifecycle, registers keyboard shortcuts, context menus, and controls the side panel toggle states.
-* **`tabs/markdown.tsx`**: The main side panel UI workspace, containing the raw Markdown editor, preview components, layout preferences, and utility exporters.
+## Getting Started
 
-## Local Setup
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/rafifmsn/pagemark.git
+   cd pagemark
+   ```
 
-### Prerequisites
-* **Node.js** (v18 or higher recommended)
-* **npm** (used as the primary package manager)
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-### Installation
-Clone the repository and install the dependencies:
+3. **Run local development server**:
+   ```bash
+   # For Google Chrome
+   npm run dev
+
+   # For Mozilla Firefox
+   npm run dev:firefox
+   ```
+
+---
+
+## How to Load the Extension in Your Browser
+
+### Google Chrome / Chromium-Based (Brave, Edge, Opera)
+1. Open Chrome and navigate to `chrome://extensions`.
+2. Toggle **Developer mode** in the top right.
+3. Click **Load unpacked** in the top left.
+4. Select the `build/chrome-mv3-dev` directory created by Plasmo.
+
+### Mozilla Firefox
+1. Open Firefox and navigate to `about:debugging`.
+2. Click **This Firefox** on the left menu.
+3. Click **Load Temporary Add-on...** under Temporary Extensions.
+4. Select the `build/firefox-mv3-dev/manifest.json` file.
+
+---
+
+## Development Workflow
+
+### Branch Naming Conventions
+Please create feature/bugfix branches off the `main` or development branch. Use descriptive names following this convention:
+- `feat/feature-name` (e.g. `feat/firefox-support`)
+- `fix/bug-name` (e.g. `fix/shortcut-conflict`)
+- `chore/task-name` (e.g. `chore/add-ci-pipeline`)
+
+### Commits
+We follow standard commit formats:
+- `feat: ...` for new features or capabilities.
+- `fix: ...` for bug fixes.
+- `chore: ...` for build, dependencies, configuration updates.
+- `docs: ...` for documentation modifications.
+
+---
+
+## Testing
+
+Before submitting a PR, make sure your code builds successfully and all unit tests pass.
+
+### Unit Tests
+We use **Vitest** for fast, lightweight helper testing.
 ```bash
-git clone https://github.com/rafifmsn/pagemark.git
-cd pagemark
-npm install
+npm run test
 ```
 
-### Development Server
-Run the development server. This will compile the code and watch for changes:
-```bash
-npm run dev
-```
-1. Open Google Chrome.
-2. Navigate to `chrome://extensions`.
-3. Enable **Developer mode** (toggle in the top-right).
-4. Click **Load unpacked** and select the `build/chrome-mv3-dev` directory created by Plasmo.
-
-### Production Build
-To generate a production-ready zip package for the Chrome Web Store:
+### Build Verification
+Always run build tasks for both targets to confirm there are no bundler or TypeScript type errors:
 ```bash
 npm run build:chrome
+npm run build:firefox
 ```
-The output zip will be placed in the `build/` directory.
-
-## Contribution Guidelines
-
-1. **Keep it 100% Local**: Pagemark is a strictly privacy-first tool. Do not introduce any third-party analytics, remote tracking scripts, telemetry, or remote API calls. All parsing must remain local.
-2. **Broad Permissions Decided**: We explicitly choose broad host permissions (`matches: ["<all_urls>"]`) over programmatic injection to ensure the side panel workspace auto-updates seamlessly as the user navigates across tabs. Refer to [docs/activeTab-decision.md](./docs/activeTab-decision.md) for context.
-3. **Clean Build**: Ensure your changes do not introduce any TypeScript compilation or linting errors. Always verify with `npm run build` before pushing.

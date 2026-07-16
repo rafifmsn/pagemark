@@ -13,7 +13,8 @@
     "build:chrome": "plasmo build --target=chrome-mv3 --zip",
     "build:firefox": "plasmo build --target=firefox-mv3 --zip --source-maps",
     "package": "plasmo package",
-    "build:all": "pnpm run build:chrome && pnpm run build:firefox"
+    "build:all": "pnpm run build:chrome && pnpm run build:firefox",
+    "test": "vitest run"
   },
   "dependencies": {
     "defuddle": "^0.13.0",
@@ -45,7 +46,8 @@
     "postcss": "^8.5.10",
     "prettier": "3.2.4",
     "tailwindcss": "3",
-    "typescript": "5.3.3"
+    "typescript": "5.3.3",
+    "vitest": "^4.1.10"
   },
   "manifest": {
     "permissions": [

@@ -1,5 +1,6 @@
 import Markdown from "markdown-to-jsx/react"
 import { useEffect, useRef, useState } from "react"
+import { isRestrictedUrl, generatePageMap } from "../utils/helpers"
 
 import "./style.css"
 
@@ -191,75 +192,7 @@ const RefreshIcon = (props: any) => (
     </svg>
 )
 
-interface HeadingNode {
-    text: string
-    level: number
-    children: HeadingNode[]
-}
 
-function generatePageMap(
-    markdown: string,
-    title: string = "Document Structure"
-): string {
-    const lines = markdown.split("\n")
-    const headings: { level: number; text: string }[] = []
-
-    lines.forEach((line) => {
-        const match = line.match(/^(#{1,6})\s+(.+)$/)
-        if (match) {
-            headings.push({ level: match[1].length, text: match[2].trim() })
-        }
-    })
-
-    if (headings.length === 0) return ""
-
-    const root: HeadingNode = { text: title, level: 0, children: [] }
-    const stack: HeadingNode[] = [root]
-
-    headings.forEach((h) => {
-        const node: HeadingNode = { text: h.text, level: h.level, children: [] }
-        while (stack.length > 1 && stack[stack.length - 1].level >= h.level) {
-            stack.pop()
-        }
-        stack[stack.length - 1].children.push(node)
-        stack.push(node)
-    })
-
-    let mapStr = `${title}\n`
-
-    function renderNode(
-        node: HeadingNode,
-        prefix: string,
-        isLast: boolean,
-        isRoot: boolean
-    ) {
-        if (!isRoot) {
-            const connector = isLast ? "└── " : "├── "
-            mapStr += `${prefix}${connector}${node.text}\n`
-
-            if (node.children.length > 0) {
-                const childPrefix = prefix + (isLast ? "    " : "│   ")
-                node.children.forEach((child, index) => {
-                    renderNode(
-                        child,
-                        childPrefix,
-                        index === node.children.length - 1,
-                        false
-                    )
-                })
-            }
-        } else {
-            node.children.forEach((child, index) => {
-                renderNode(child, "", index === node.children.length - 1, false)
-            })
-        }
-    }
-
-    renderNode(root, "", true, true)
-    mapStr = mapStr.replace(/│\n$/g, "").trimEnd()
-
-    return "# Page Structure Map\n```text\n" + mapStr + "\n```\n"
-}
 
 export default function MarkdownPage() {
     const [markdown, setMarkdown] = useState("")
@@ -345,15 +278,7 @@ export default function MarkdownPage() {
                     return
                 }
                 const activeTab = tabs?.[0]
-                if (activeTab?.url && (
-                    activeTab.url.startsWith("chrome://") ||
-                    activeTab.url.startsWith("brave://") ||
-                    activeTab.url.startsWith("edge://") ||
-                    activeTab.url.startsWith("about:") ||
-                    activeTab.url.startsWith("moz-extension://") ||
-                    activeTab.url.startsWith("chrome-extension://") ||
-                    activeTab.url.includes("chromewebstore.google.com")
-                )) {
+                if (activeTab?.url && isRestrictedUrl(activeTab.url)) {
                     setError("This page cannot be clipped (restricted browser system page).")
                     setStatus("")
                     return
