@@ -335,7 +335,10 @@ export default function MarkdownPage() {
                 if (activeTab?.url && (
                     activeTab.url.startsWith("chrome://") ||
                     activeTab.url.startsWith("brave://") ||
+                    activeTab.url.startsWith("edge://") ||
                     activeTab.url.startsWith("about:") ||
+                    activeTab.url.startsWith("moz-extension://") ||
+                    activeTab.url.startsWith("chrome-extension://") ||
                     activeTab.url.includes("chromewebstore.google.com")
                 )) {
                     setError("This page cannot be clipped (restricted browser system page).")

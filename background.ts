@@ -29,6 +29,18 @@ chrome.runtime.onConnect.addListener((port) => {
 const handleConvertToMarkdown = (tab: chrome.tabs.Tab, toggle = false) => {
   if (!tab?.id) return
 
+  // Guard against restricted/internal browser pages
+  if (tab.url && (
+    tab.url.startsWith("about:") || 
+    tab.url.startsWith("chrome://") || 
+    tab.url.startsWith("edge://") || 
+    tab.url.startsWith("moz-extension://") || 
+    tab.url.startsWith("chrome-extension://")
+  )) {
+    console.log("Pagemark cannot run on restricted or internal browser pages.")
+    return
+  }
+
   const sendMessage = () => {
     chrome.tabs
       .sendMessage(tab.id!, { action: "convert-to-markdown" })
@@ -42,7 +54,9 @@ const handleConvertToMarkdown = (tab: chrome.tabs.Tab, toggle = false) => {
     return
   }
 
-  // Open side panel programmatically if supported
+  const browserAPI = (globalThis as any).browser
+
+  // Open side panel/sidebar programmatically if supported
   if (typeof chrome !== "undefined" && chrome.sidePanel && chrome.sidePanel.open) {
     chrome.sidePanel
       .open({ tabId: tab.id })
@@ -51,6 +65,16 @@ const handleConvertToMarkdown = (tab: chrome.tabs.Tab, toggle = false) => {
       })
       .catch((err) => {
         console.warn("Failed to open sidepanel, sending message directly:", err)
+        sendMessage()
+      })
+  } else if (browserAPI && browserAPI.sidebarAction && browserAPI.sidebarAction.open) {
+    browserAPI.sidebarAction
+      .open()
+      .then(() => {
+        sendMessage()
+      })
+      .catch((err) => {
+        console.warn("Failed to open sidebar, sending message directly:", err)
         sendMessage()
       })
   } else {
@@ -70,6 +94,13 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 })
 
+// Listen for action click to open sidebar on Firefox / other browsers without native sidePanel behavior
+if (typeof chrome !== "undefined" && chrome.action && chrome.action.onClicked) {
+  chrome.action.onClicked.addListener((tab) => {
+    handleConvertToMarkdown(tab, false)
+  })
+}
+
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "open-markdown-tab") {
@@ -77,3 +108,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.tabs.create({ url: chrome.runtime.getURL("tabs/markdown.html") })
   }
 })
+

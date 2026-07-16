@@ -14,7 +14,7 @@ Pagemark is a modern web extension designed for researchers, developers, and AI 
 2. **Trigger**:
    - Right-click anywhere and select **"Pagemark this page"**, OR
    - Click the extension icon in your browser toolbar, OR
-   - Press the hotkey **`Ctrl + Shift + K`** (or **`Cmd + Shift + K`** on macOS, configurable in `chrome://extensions/shortcuts`).
+   - Press the hotkey **`Alt + K`** (or **`Option + K`** on macOS, configurable in `chrome://extensions/shortcuts` or `about:addons` on Firefox).
 3. **Clip & Copy**: The side panel opens instantly, showing the live markdown, which is automatically copied to your clipboard (optional) or ready to download.
 
 ## Features
@@ -83,7 +83,7 @@ npm run build
 
 The production output will be generated inside the **`build/chrome-mv3-prod`** folder, ready to be packaged or loaded unpacked for daily use.
 
-> Note: While the extension's Plasmo framework makes cross-browser builds possible, the Firefox version has not been fully tested yet. Additionally, Firefox users must manually change the extension shortcut, as the default `Ctrl/Cmd + Shift + K` is already reserved for the Firefox Web Console.
+> Note: While the extension's Plasmo framework makes cross-browser builds possible, the Firefox version has not been fully tested yet.
 
 ## Tech Stack
 

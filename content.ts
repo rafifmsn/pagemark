@@ -1,8 +1,13 @@
+import type { PlasmoCSConfig } from "plasmo"
 import { Defuddle } from "defuddle-js"
 import TurndownService from "turndown"
 import { gfm } from "turndown-plugin-gfm"
 
-export {}
+export const config: PlasmoCSConfig = {
+  matches: ["<all_urls>"],
+  run_at: "document_start"
+}
+
 
 function convertPageToMarkdown() {
   let article: any = null

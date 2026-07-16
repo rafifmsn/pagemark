@@ -3,7 +3,7 @@
 This document records the decision to stick with broad host permissions (`matches: ["<all_urls>"]` / `<all_urls>` host permissions) rather than transitioning to the Manifest V3 `activeTab` permission model.
 
 ## Context
-We investigated migrating the extension to the more restrictive `activeTab` permission model. Under this model, the extension would not have access to any webpage by default, and would programmatically inject the content parser script (`content.ts`) only when the user explicitly interacted with the extension (via the hotkey `Ctrl+Shift+K` or the context menu).
+We investigated migrating the extension to the more restrictive `activeTab` permission model. Under this model, the extension would not have access to any webpage by default, and would programmatically inject the content parser script (`content.ts`) only when the user explicitly interacted with the extension (via the hotkey `Alt+K` or the context menu).
 
 ## Findings & Technical Limitations
 
