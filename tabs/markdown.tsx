@@ -456,44 +456,72 @@ export default function MarkdownPage() {
         setMarkdown(finalMd)
     }, [pageData, toggles])
 
-    useEffect(() => {
-        if (markdown && !hasAutoCopied && typeof navigator !== "undefined" && navigator.clipboard) {
-            if (document.hasFocus()) {
+    const delegateCopyToContentScript = (text: string, onSuccess: () => void, isAuto: boolean) => {
+        if (typeof chrome !== "undefined" && chrome.tabs) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                const activeTab = tabs?.[0]
+                if (activeTab?.id && !isRestrictedUrl(activeTab.url || "")) {
+                    chrome.tabs.sendMessage(
+                        activeTab.id,
+                        { action: "copy-to-clipboard", text },
+                        (response) => {
+                            if (chrome.runtime?.lastError) {
+                                if (isAuto) setPendingAutoCopy(true)
+                                return
+                            }
+                            if (response && response.success) {
+                                onSuccess()
+                            } else {
+                                if (isAuto) setPendingAutoCopy(true)
+                            }
+                        }
+                    )
+                } else {
+                    if (isAuto) setPendingAutoCopy(true)
+                }
+            })
+        } else {
+            if (isAuto) setPendingAutoCopy(true)
+        }
+    }
+
+    const copyMarkdown = (text: string, isAuto: boolean) => {
+        if (!text) return
+
+        const showSuccessStatus = () => {
+            setStatus(isAuto ? "Auto-copied!" : "Copied!")
+            if (isAuto) {
                 setHasAutoCopied(true)
                 setPendingAutoCopy(false)
-                navigator.clipboard
-                    .writeText(markdown)
-                    .then(() => {
-                        setStatus("Auto-copied!")
-                        setTimeout(() => setStatus(""), 2000)
-                    })
-                    .catch((err) => {
-                        if (err?.name !== "NotAllowedError") {
-                            console.warn("Auto-copy failed:", err)
-                        }
-                    })
-            } else {
-                setPendingAutoCopy(true)
             }
+            setTimeout(() => setStatus(""), 2000)
+        }
+
+        // Try local copy first
+        if (typeof navigator !== "undefined" && navigator.clipboard && document.hasFocus()) {
+            navigator.clipboard
+                .writeText(text)
+                .then(() => {
+                    showSuccessStatus()
+                })
+                .catch((localErr) => {
+                    delegateCopyToContentScript(text, showSuccessStatus, isAuto)
+                })
+        } else {
+            delegateCopyToContentScript(text, showSuccessStatus, isAuto)
+        }
+    }
+
+    useEffect(() => {
+        if (markdown && !hasAutoCopied) {
+            copyMarkdown(markdown, true)
         }
     }, [markdown, hasAutoCopied])
 
     useEffect(() => {
         const handleFocus = () => {
-            if (pendingAutoCopy && markdown && !hasAutoCopied && typeof navigator !== "undefined" && navigator.clipboard) {
-                setHasAutoCopied(true)
-                setPendingAutoCopy(false)
-                navigator.clipboard
-                    .writeText(markdown)
-                    .then(() => {
-                        setStatus("Auto-copied!")
-                        setTimeout(() => setStatus(""), 2000)
-                    })
-                    .catch((err) => {
-                        if (err?.name !== "NotAllowedError") {
-                            console.warn("Auto-copy failed on focus:", err)
-                        }
-                    })
+            if (pendingAutoCopy && markdown && !hasAutoCopied) {
+                copyMarkdown(markdown, true)
             }
         }
         window.addEventListener("focus", handleFocus)
