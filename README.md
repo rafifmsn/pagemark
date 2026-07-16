@@ -12,8 +12,6 @@
 
 Pagemark is a modern web extension designed for researchers, developers, and AI engineers. It extracts the core content of any webpage and converts it into structured, optimized Markdown, perfect for feeding directly into LLMs (like GPT, Claude, Gemini) or storing in your personal knowledge base.
 
-> Install it through the **[Chrome Web Store](https://chromewebstore.google.com/detail/pagemark/dpnfgohhgehakmknbnpgojaalglhaeej)**, or download it directly from the **[latest release](https://github.com/rafifmsn/pagemark/releases/tag/1.0.0)**.
-
 ## How It Works
 
 1. **Navigate** to any webpage you want to clip.
@@ -45,7 +43,7 @@ Pagemark is built on the [Plasmo](https://docs.plasmo.com/) extension framework 
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v16+)
+- [Node.js](https://nodejs.org/) (v18+)
 - A package manager: `npm` (default), `pnpm`, or `yarn`
 
 ### 1. Clone & Install
@@ -62,18 +60,28 @@ npm install
 ### 2. Run in Development Mode
 
 ```bash
+# For Chrome / Chromium
 npm run dev
+
+# For Firefox
+npm run dev:firefox
 ```
 
-This runs the Plasmo dev server and generates an active development build folder at `build/chrome-mv3-dev`.
+This runs the Plasmo dev server and generates an active development build folder at `build/chrome-mv3-dev` (or `build/firefox-mv3-dev`).
 
 ### 3. Load the Extension in Your Browser
 
-1. Open your browser (Brave, Chrome, Edge, Opera).
-2. Navigate to **`chrome://extensions/`** (or select Extensions -> Manage Extensions).
-3. Toggle the **"Developer mode"** switch in the top-right corner.
-4. Click the **"Load unpacked"** button in the top-left.
-5. Select the **`build/chrome-mv3-dev`** folder in this project directory.
+#### Chrome / Chromium (Chrome, Brave, Edge, Opera)
+1. Navigate to **`chrome://extensions/`** (or select Extensions -> Manage Extensions).
+2. Toggle the **"Developer mode"** switch in the top-right corner.
+3. Click the **"Load unpacked"** button in the top-left.
+4. Select the **`build/chrome-mv3-dev`** folder in this project directory.
+
+#### Firefox
+1. Navigate to **`about:debugging`** in your URL bar.
+2. Click **"This Firefox"** in the left sidebar.
+3. Click the **"Load Temporary Add-on..."** button.
+4. Select the **`manifest.json`** inside the **`build/firefox-mv3-dev`** folder.
 
 The Pagemark sidebar icon will now appear in your toolbar!
 
@@ -84,12 +92,15 @@ The Pagemark sidebar icon will now appear in your toolbar!
 To compile a minified, production-ready build:
 
 ```bash
-npm run build
+# Build for all targets (Chrome & Firefox)
+npm run build:all
+
+# Or build individually
+npm run build:chrome
+npm run build:firefox
 ```
 
-The production output will be generated inside the **`build/chrome-mv3-prod`** folder, ready to be packaged or loaded unpacked for daily use.
-
-> Note: While the extension's Plasmo framework makes cross-browser builds possible, the Firefox version has not been fully tested yet.
+The production output will be generated inside the **`build/chrome-mv3-prod`** and **`build/firefox-mv3-prod`** folders, ready to be packaged or loaded unpacked for daily use.
 
 ## Tech Stack
 
@@ -97,6 +108,15 @@ The production output will be generated inside the **`build/chrome-mv3-prod`** f
 - **UI & Layout**: [React](https://reactjs.org/) & [Tailwind CSS](https://tailwindcss.com/)
 - **Parsing Engine**: `@mozilla/readability` & `Turndown` (with GFM tables plugin)
 
-## License
+## License & Attribution
 
-Distributed under the MIT License. See **[LICENSE](https://www.google.com/search?q=LICENSE)** for more details. This project is a continuation of **[Adem Kouki](https://github.com/Ademking/MD-This-Page)**'s work.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
+
+This project is a continuation of [Adem Kouki's MD-This-Page](https://github.com/Ademking/MD-This-Page), which provided the foundational engine setup for readability extraction, turndown conversion, and core layout functionalities.
+
+### Pagemark Enhancements
+- Migrated the extension structure to run within a native Side Panel/Sidebar.
+- Designed a side-by-side workspace that co-exists directly with your active webpage.
+- Refactored parsing and rendering logic for cleaner, more accurate Markdown outputs.
+- Enabled clipboard writing in Firefox sidebar contexts using a cross-context message delegation system.
+- Added defensive guards for internal browser/system URLs, and more.
