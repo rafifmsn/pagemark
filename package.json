@@ -1,7 +1,7 @@
 {
   "name": "pagemark",
   "displayName": "Pagemark",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Convert web page to markdown with one click",
   "author": "Rafif Muchsin <rafif@rafifmsn.com>",
   "scripts": {
@@ -13,7 +13,7 @@
     "build:chrome": "plasmo build --target=chrome-mv3 --zip",
     "build:firefox": "plasmo build --target=firefox-mv3 --zip",
     "package": "plasmo package",
-    "build:all": "pnpm run build:chrome && pnpm run build:firefox",
+    "build:all": "npm run build:chrome && npm run build:firefox",
     "test": "vitest run"
   },
   "dependencies": {

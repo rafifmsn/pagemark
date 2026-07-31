@@ -7,7 +7,6 @@
 [![Get it from the Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Download-4285F4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://chromewebstore.google.com/detail/dpnfgohhgehakmknbnpgojaalglhaeej)
 [![Get it from Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-Download-FF7100?style=for-the-badge&logo=firefox-browser&logoColor=white)](https://addons.mozilla.org/firefox/addon/pagemark)
 
-
 ![pagemark-1](./pagemark-thumb-1.jpg)
 
 Pagemark is a modern web extension designed for researchers, developers, and AI engineers. It extracts the core content of any webpage and converts it into structured, optimized Markdown, perfect for feeding directly into LLMs (like GPT, Claude, Gemini) or storing in your personal knowledge base.
@@ -72,12 +71,14 @@ This runs the Plasmo dev server and generates an active development build folder
 ### 3. Load the Extension in Your Browser
 
 #### Chrome / Chromium (Chrome, Brave, Edge, Opera)
+
 1. Navigate to **`chrome://extensions/`** (or select Extensions -> Manage Extensions).
 2. Toggle the **"Developer mode"** switch in the top-right corner.
 3. Click the **"Load unpacked"** button in the top-left.
 4. Select the **`build/chrome-mv3-dev`** folder in this project directory.
 
 #### Firefox
+
 1. Navigate to **`about:debugging`** in your URL bar.
 2. Click **"This Firefox"** in the left sidebar.
 3. Click the **"Load Temporary Add-on..."** button.
@@ -115,8 +116,10 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
 This project is a continuation of [Adem Kouki's MD-This-Page](https://github.com/Ademking/MD-This-Page), which provided the foundational engine setup for readability extraction, turndown conversion, and core layout functionalities.
 
 ### Pagemark Enhancements
+
 - Migrated the extension structure to run within a native Side Panel/Sidebar.
 - Designed a side-by-side workspace that co-exists directly with your active webpage.
 - Refactored parsing and rendering logic for cleaner, more accurate Markdown outputs.
 - Enabled clipboard writing in Firefox sidebar contexts using a cross-context message delegation system.
+- Added "Auto-copy on Tab Switch" setting toggle and custom site whitelist support.
 - Added defensive guards for internal browser/system URLs, and more.
