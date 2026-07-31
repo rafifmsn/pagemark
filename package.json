@@ -54,7 +54,7 @@
       "activeTab",
       "contextMenus",
       "storage",
-      "sidePanel",
+      "$SIDE_PANEL_PERMISSION",
       "clipboardWrite"
     ],
     "host_permissions": [

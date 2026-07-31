@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { isRestrictedUrl, generatePageMap } from "./helpers"
+import { isRestrictedUrl, generatePageMap, isUrlWhitelisted } from "./helpers"
 
 describe("isRestrictedUrl", () => {
   it("should return true for restricted browser system/extension URLs", () => {
@@ -41,3 +41,40 @@ describe("generatePageMap", () => {
     expect(generatePageMap(md)).toBe(expected)
   })
 })
+
+describe("isUrlWhitelisted", () => {
+  it("should return false for empty inputs", () => {
+    expect(isUrlWhitelisted("", "google.com")).toBe(false)
+    expect(isUrlWhitelisted("https://google.com", "")).toBe(false)
+  })
+
+  it("should match simple domain names", () => {
+    const whitelist = "google.com, github.com"
+    expect(isUrlWhitelisted("https://google.com", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://www.google.com", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://github.com/path", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://other.com", whitelist)).toBe(false)
+  })
+
+  it("should handle www and protocols in whitelist", () => {
+    const whitelist = "https://www.google.com, http://localhost:3000"
+    expect(isUrlWhitelisted("https://google.com", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("http://localhost:3000/test", whitelist)).toBe(true)
+  })
+
+  it("should support subdomain wildcard matches", () => {
+    const whitelist = "*.google.com"
+    expect(isUrlWhitelisted("https://sub.google.com", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://sub.sub.google.com", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://google.com", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://othergoogle.com", whitelist)).toBe(false)
+  })
+
+  it("should support paths or specific subpages", () => {
+    const whitelist = "github.com/rafifmsn/pagemark"
+    expect(isUrlWhitelisted("https://github.com/rafifmsn/pagemark", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://github.com/rafifmsn/pagemark/actions", whitelist)).toBe(true)
+    expect(isUrlWhitelisted("https://github.com/rafifmsn/other", whitelist)).toBe(false)
+  })
+})
+
