@@ -80,3 +80,59 @@ export function generatePageMap(
 
   return "# Page Structure Map\n```text\n" + mapStr + "\n```\n"
 }
+
+export function isUrlWhitelisted(url: string, whitelistString: string): boolean {
+  if (!url || !whitelistString) return false
+
+  const rules = whitelistString
+    .split(",")
+    .map((r) => r.trim())
+    .filter(Boolean)
+
+  if (rules.length === 0) return false
+
+  let hostname = ""
+  try {
+    const parsed = new URL(url)
+    hostname = parsed.host.toLowerCase()
+  } catch {
+    hostname = url.toLowerCase()
+  }
+
+  const normalizeHost = (host: string) => host.replace(/^(www\.)?/, "")
+  const cleanUrlHost = normalizeHost(hostname)
+
+  for (const rule of rules) {
+    let cleanRule = rule.toLowerCase()
+
+    // Strip protocol and www
+    cleanRule = cleanRule.replace(/^(https?:\/\/)?(www\.)?/, "")
+
+    if (cleanRule.includes("/")) {
+      const cleanFullUrl = url.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, "")
+      if (cleanRule.includes("*")) {
+        const regexStr = "^" + cleanRule.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$"
+        const regex = new RegExp(regexStr)
+        if (regex.test(cleanFullUrl)) {
+          return true
+        }
+      } else if (cleanFullUrl.startsWith(cleanRule) || url.toLowerCase().includes(rule.toLowerCase())) {
+        return true
+      }
+      continue
+    }
+
+    if (cleanRule.startsWith("*.")) {
+      const baseDomain = cleanRule.slice(2)
+      if (cleanUrlHost === baseDomain || cleanUrlHost.endsWith("." + baseDomain)) {
+        return true
+      }
+    } else {
+      if (cleanUrlHost === cleanRule || hostname === cleanRule) {
+        return true
+      }
+    }
+  }
+
+  return false
+}

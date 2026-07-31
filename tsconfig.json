@@ -10,11 +10,11 @@
   ],
   "compilerOptions": {
     "moduleResolution": "bundler",
+    "types": ["chrome"],
     "paths": {
       "~*": [
         "./*"
       ]
-    },
-    "baseUrl": "."
+    }
   }
 }
