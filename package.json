@@ -2,8 +2,21 @@
   "name": "pagemark",
   "displayName": "Pagemark",
   "version": "1.0.2",
-  "description": "Convert web page to markdown with one click",
+  "description": "Clip any web page to clean Markdown with side panel, auto-copy whitelist, and token counter",
   "author": "Rafif Muchsin <rafif@rafifmsn.com>",
+  "homepage": "https://github.com/rafifmsn/pagemark",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rafifmsn/pagemark.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "firefox-addon",
+    "markdown",
+    "clipper",
+    "side-panel",
+    "web-clipper"
+  ],
   "scripts": {
     "dev": "plasmo dev",
     "dev:verbose": "plasmo dev --verbose",
@@ -13,18 +26,15 @@
     "build:chrome": "plasmo build --target=chrome-mv3 --zip",
     "build:firefox": "plasmo build --target=firefox-mv3 --zip",
     "package": "plasmo package",
-    "build:all": "npm run build:chrome && npm run build:firefox",
-    "test": "vitest run"
+    "build:all": "npm run build:chrome && npm run build:firefox"
   },
   "dependencies": {
-    "defuddle": "^0.13.0",
-    "defuddle-js": "^0.1.0",
+    "lucide-react": "^1.28.0",
     "markdown-to-jsx": "^9.7.15",
+    "pagemark-core": "^1.0.0",
     "plasmo": "0.90.5",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "turndown": "^7.2.4",
-    "turndown-plugin-gfm": "^1.0.2"
+    "react-dom": "18.2.0"
   },
   "overrides": {
     "@parcel/watcher": "^2.5.6",
@@ -38,16 +48,14 @@
     "@ianvs/prettier-plugin-sort-imports": "4.1.1",
     "@tailwindcss/typography": "^0.5.19",
     "@types/chrome": "0.0.258",
-    "@types/node": "20.11.5",
+    "@types/node": "^20.19.0",
     "@types/react": "18.2.48",
     "@types/react-dom": "18.2.18",
     "autoprefixer": "^10.5.0",
-    "jsdom": "^29.1.1",
     "postcss": "^8.5.10",
     "prettier": "3.2.4",
     "tailwindcss": "3",
-    "typescript": "5.3.3",
-    "vitest": "^4.1.10"
+    "typescript": "5.3.3"
   },
   "manifest": {
     "permissions": [

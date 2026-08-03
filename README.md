@@ -22,28 +22,22 @@ Pagemark is a modern web extension designed for researchers, developers, and AI 
 
 ## Features
 
-- **Smart Content Extraction**: Utilizes industry-standard readability extraction to isolate the main body content, ignoring distracting ads, popups, and nav bars.
-- **Side Panel Workspace**: Runs inside a native browser Side Panel, letting you view, edit, and preview markdown side-by-side with your active webpage.
-- **Live Markdown Preview**: Split tab view containing a raw **Markdown Editor** (with text area & char count) and a rendered **Live Preview** (with custom scrollable tables).
-- **Persistent Preferences**: All toggles and preferences are stored in the browser's local storage and auto-save instantly:
-  - **Include Images**: Toggle to keep/strip image tags (default: `false`).
-  - **Include Links**: Toggle to preserve hyperlinks or keep just the anchor text (default: `true`).
+- **Co-existing Workspace**: Runs inside a native browser Side Panel (Chrome) or Sidebar (Firefox), letting you view, edit, and preview markdown side-by-side with your active webpage.
+- **Smart Content Extraction**: Utilizes an isolated core readability parser to extract main body content while stripping out distracting ads, popups, and navigation bars.
+- **Live Markdown Preview**: Split tab view containing a raw **Markdown Editor** (with text area & character count) and a rendered **Live Preview** (with custom scrollable GFM tables).
+- **Decimal Outline Map**: Injects a clean, numbered decimal hierarchy outline map representing the document heading structure (omitting the document title, as it is already displayed in the header).
+- **Defensive Guards**: Built-in blockades protecting against execution errors on internal browser/system URLs.
+- **Persistent Preferences**: All toggles and preferences are stored in local storage and auto-saved instantly:
+  - **Include Images**: Toggle to keep or strip image tags.
+  - **Include Links**: Toggle to preserve hyperlinks or keep just the anchor text.
   - **Include Info**: Adds page metadata (Title and timezone-aware Created timestamp).
   - **Include Source**: Appends the source page URL.
-  - **Include Map**: Generates an hierarchical text tree outline of the document structure.
-- **Export Options**:
-  - **Copy MD**: Instantly copy raw markdown.
-  - **Prompt**: Copies raw markdown with a code block wrapper.
-  - **Download**: Saves as a `.md` file.
+  - **Include Map**: Generates the decimal heading outline.
+  - **Smart Auto-Copy**: Automatically copies converted markdown to the clipboard upon switching active tabs (backed by cross-context delegation for Firefox stability), complete with customizable site whitelisting (e.g., `*.google.com`, `localhost:3000`) to disable execution on specific hosts.
 
 ## Installation & Setup
 
-Pagemark is built on the [Plasmo](https://docs.plasmo.com/) extension framework with React and Tailwind CSS.
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18+)
-- A package manager: `npm` (default), `pnpm`, or `yarn`
+Pagemark is built on the [Plasmo](https://docs.plasmo.com/) extension framework with React and Tailwind CSS, with `@mozilla/readability` and `turndown` imported from [pagemark-core](https://github.com/rafifmsn/pagemark-core).
 
 ### 1. Clone & Install
 
@@ -66,29 +60,9 @@ npm run dev
 npm run dev:firefox
 ```
 
-This runs the Plasmo dev server and generates an active development build folder at `build/chrome-mv3-dev` (or `build/firefox-mv3-dev`).
+This runs the Plasmo dev server and generates an active development build folder at `pagemark-extension/build/chrome-mv3-dev` (or `pagemark-extension/build/firefox-mv3-dev`).
 
-### 3. Load the Extension in Your Browser
-
-#### Chrome / Chromium (Chrome, Brave, Edge, Opera)
-
-1. Navigate to **`chrome://extensions/`** (or select Extensions -> Manage Extensions).
-2. Toggle the **"Developer mode"** switch in the top-right corner.
-3. Click the **"Load unpacked"** button in the top-left.
-4. Select the **`build/chrome-mv3-dev`** folder in this project directory.
-
-#### Firefox
-
-1. Navigate to **`about:debugging`** in your URL bar.
-2. Click **"This Firefox"** in the left sidebar.
-3. Click the **"Load Temporary Add-on..."** button.
-4. Select the **`manifest.json`** inside the **`build/firefox-mv3-dev`** folder.
-
-The Pagemark sidebar icon will now appear in your toolbar!
-
-![pagemark-2](./pagemark-thumb-2.jpg)
-
-## Building for Production
+### 3. Building for Production
 
 To compile a minified, production-ready build:
 
@@ -101,25 +75,26 @@ npm run build:chrome
 npm run build:firefox
 ```
 
-The production output will be generated inside the **`build/chrome-mv3-prod`** and **`build/firefox-mv3-prod`** folders, ready to be packaged or loaded unpacked for daily use.
+The production output will be generated inside the **`pagemark-extension/build/chrome-mv3-prod`** and **`pagemark-extension/build/firefox-mv3-prod`** folders, ready to be packaged or loaded unpacked for daily use.
 
-## Tech Stack
+![pagemark-2](./pagemark-thumb-2.jpg)
 
-- **Framework**: [Plasmo](https://plasmo.com/) (MV3)
-- **UI & Layout**: [React](https://reactjs.org/) & [Tailwind CSS](https://tailwindcss.com/)
-- **Parsing Engine**: `@mozilla/readability` & `Turndown` (with GFM tables plugin)
+### 4. Load the Extension in Your Browser
 
-## License & Attribution
+#### Chrome / Chromium (Chrome, Brave, Edge, Opera)
+
+1. Navigate to **`chrome://extensions/`** (or select Extensions -> Manage Extensions).
+2. Toggle the **"Developer mode"** switch in the top-right corner.
+3. Click the **"Load unpacked"** button in the top-left.
+4. Select the **`pagemark-extension/build/chrome-mv3-dev`** folder in this project directory.
+
+#### Firefox
+
+1. Navigate to **`about:debugging`** in your URL bar.
+2. Click **"This Firefox"** in the left sidebar.
+3. Click the **"Load Temporary Add-on..."** button.
+4. Select the **`manifest.json`** inside the **`pagemark-extension/build/firefox-mv3-dev`** folder.
+
+## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
-
-This project is a continuation of [Adem Kouki's MD-This-Page](https://github.com/Ademking/MD-This-Page), which provided the foundational engine setup for readability extraction, turndown conversion, and core layout functionalities.
-
-### Pagemark Enhancements
-
-- Migrated the extension structure to run within a native Side Panel/Sidebar.
-- Designed a side-by-side workspace that co-exists directly with your active webpage.
-- Refactored parsing and rendering logic for cleaner, more accurate Markdown outputs.
-- Enabled clipboard writing in Firefox sidebar contexts using a cross-context message delegation system.
-- Added "Auto-copy on Tab Switch" setting toggle and custom site whitelist support.
-- Added defensive guards for internal browser/system URLs, and more.

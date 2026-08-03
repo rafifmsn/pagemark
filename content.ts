@@ -1,164 +1,35 @@
 import type { PlasmoCSConfig } from "plasmo"
-import { Defuddle } from "defuddle-js"
-import TurndownService from "turndown"
-import { gfm } from "turndown-plugin-gfm"
+import { parseHtmlToMarkdown } from "pagemark-core"
+import { PM_MESSAGES } from "~/lib/messages"
 
 export const config: PlasmoCSConfig = {
   matches: ["<all_urls>"],
   run_at: "document_start"
 }
 
-
 function convertPageToMarkdown() {
-  let article: any = null
-  try {
-    const html = document.documentElement.outerHTML
-    article = Defuddle.parse(html, { url: window.location.href })
-  } catch (error) {
-    console.warn("Defuddle failed to parse this page:", error)
-  }
-
-  let htmlContent = ""
-  if (article?.content) {
-    htmlContent = article.content
-  } else {
-    htmlContent = document.body.innerHTML
-  }
-
-  // Initialize Turndown service
-  const turndownService = new TurndownService({
-    headingStyle: "atx",
-    hr: "---",
-    bulletListMarker: "-",
-    codeBlockStyle: "fenced",
-    emDelimiter: "*",
-    strongDelimiter: "**",
-    linkStyle: "referenced",
-    linkReferenceStyle: "full"
-  })
-
-  // Use GFM
-  try {
-    turndownService.use(gfm)
-  } catch (err) {
-    console.error("Failed to load GFM plugin:", err)
-  }
-
-  // Add custom cleanLinks rule
-  turndownService.addRule("cleanLinks", {
-    filter: "a",
-    replacement: function (content, node) {
-      const element = node as HTMLAnchorElement
-      const href = element.getAttribute("href")
-      if (!href) return content
-
-      // Clean link content: replace newlines with space, collapse multiple spaces, trim
-      const cleanContent = content.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim()
-      if (!cleanContent) return ""
-
-      const title = element.getAttribute("title") || ""
-      const titlePart = title ? ` "${title.replace(/"/g, '\\"')}"` : ""
-
-      return `[${cleanContent}](${href}${titlePart})`
-    }
-  })
-
-  // Add custom cleanGFMTable rule
-  turndownService.addRule("cleanGFMTable", {
-    filter: "table",
-    replacement: function (content, node) {
-      const element = node as HTMLTableElement
-      const rows = Array.from(element.querySelectorAll("tr")).filter(
-        (tr) => tr.closest("table") === element
-      )
-
-      const markdownRows: string[] = []
-      let colCount = 0
-
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i]
-        const cells = Array.from(row.querySelectorAll("th, td")).filter(
-          (cell) => cell.closest("tr") === row
-        )
-        if (cells.length === 0) continue
-
-        if (cells.length > colCount) {
-          colCount = cells.length
-        }
-
-        const cellTexts = cells.map((cell) => {
-          const cellClone = cell.cloneNode(true) as HTMLElement
-          const imgs = Array.from(cellClone.querySelectorAll("img"))
-          imgs.forEach((img) => img.remove())
-
-          let cellText = turndownService.turndown(cellClone.innerHTML || "")
-          cellText = cellText
-            .replace(/\r?\n/g, " ")
-            .replace(/\s+/g, " ")
-            .replace(/\|/g, "\\|")
-            .trim()
-          return cellText
-        })
-
-        markdownRows.push("| " + cellTexts.join(" | ") + " |")
-      }
-
-      if (markdownRows.length === 0) return ""
-
-      // Build alignment separators
-      const firstRow = rows[0]
-      const firstRowCells = Array.from(firstRow.querySelectorAll("th, td")).filter(
-        (cell) => cell.closest("tr") === firstRow
-      )
-      const alignments = firstRowCells.map((cell) => {
-        const align = cell.getAttribute("align") || ""
-        if (align === "left") return ":---"
-        if (align === "right") return "---:"
-        if (align === "center") return ":---:"
-        return "---"
-      })
-
-      while (alignments.length < colCount) {
-        alignments.push("---")
-      }
-
-      const separatorRow = "| " + alignments.join(" | ") + " |"
-      const finalRows = [markdownRows[0], separatorRow, ...markdownRows.slice(1)]
-
-      return "\n\n" + finalRows.join("\n") + "\n\n"
-    }
-  })
-
-  let markdown = ""
-  try {
-    markdown = turndownService.turndown(htmlContent)
-  } catch (err) {
-    console.error("Turndown conversion failed:", err)
-    markdown = article?.textContent || document.body.innerText || ""
-  }
-
+  const html = document.documentElement.outerHTML
+  const result = parseHtmlToMarkdown(html, { url: window.location.href })
+  
   const pageData = {
-    markdown: markdown,
-    title: article?.title || document.title || "",
-    author: article?.author || "",
-    date: article?.datePublished || "",
-    url: window.location.href || ""
+    markdown: result.markdown,
+    title: result.title || document.title || "",
+    author: result.author,
+    date: result.date,
+    url: result.url || window.location.href || ""
   }
 
   chrome.storage.local.set({ pageData }, () => {
     if (chrome.runtime.lastError) {
       console.error("Failed to save page data:", chrome.runtime.lastError)
     }
-    chrome.runtime.sendMessage({ action: "page-converted", pageData }).catch(() => {
+    chrome.runtime.sendMessage({ action: PM_MESSAGES.PAGE_CONVERTED, pageData }).catch(() => {
       // Ignore errors when nobody is listening
     })
   })
 }
 
-function copyTextToClipboard(text: string): Promise<void> {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    return navigator.clipboard.writeText(text)
-  }
+function execCopyFallback(text: string): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
       const textArea = document.createElement("textarea")
@@ -183,10 +54,19 @@ function copyTextToClipboard(text: string): Promise<void> {
   })
 }
 
+function copyTextToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => {
+      return execCopyFallback(text)
+    })
+  }
+  return execCopyFallback(text)
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "convert-to-markdown") {
+  if (request.action === PM_MESSAGES.CONVERT) {
     convertPageToMarkdown()
-  } else if (request.action === "copy-to-clipboard") {
+  } else if (request.action === PM_MESSAGES.COPY_TO_CLIPBOARD) {
     copyTextToClipboard(request.text)
       .then(() => {
         sendResponse({ success: true })

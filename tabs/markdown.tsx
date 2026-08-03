@@ -1,32 +1,43 @@
 import Markdown from "markdown-to-jsx/react"
-import { useEffect, useRef, useState } from "react"
-
 import {
   generatePageMap,
   isRestrictedUrl,
   isUrlWhitelisted
-} from "../utils/helpers"
+} from "pagemark-core"
+import { useEffect, useRef, useState } from "react"
+import { PM_MESSAGES } from "~/lib/messages"
+import { usePagemarkSettings } from "./hooks/useSettings"
+import { usePageData } from "./hooks/usePageData"
+
 import {
-  CheckIcon,
-  CopyIcon,
-  DownloadIcon,
-  ImageIcon,
-  LinkIcon,
-  MapIcon,
-  MetaDataIcon,
-  RefreshIcon,
-  SettingsIcon,
-  SourceUrlIcon,
-  TrashIcon
-} from "./icons"
+  Check as CheckIcon,
+  Copy as CopyIcon,
+  Download as DownloadIcon,
+  Image as ImageIcon,
+  Link2 as LinkIcon,
+  Map as MapIcon,
+  FileUser as MetaDataIcon,
+  SlidersVertical as SettingsIcon,
+  Link as SourceUrlIcon,
+  Trash2 as TrashIcon
+} from "lucide-react"
 
 import "./style.css"
 
 export default function MarkdownPage() {
+  const { toggles, setToggles, handleToggle, settingsLoaded } = usePagemarkSettings()
+  const {
+    pageData,
+    status,
+    setStatus,
+    error,
+    setError,
+    hasHostPermission,
+    requestHostPermission,
+    triggerConversion
+  } = usePageData()
+
   const [markdown, setMarkdown] = useState("")
-  const [status, setStatus] = useState("")
-  const [error, setError] = useState("")
-  const [pageData, setPageData] = useState<any>(null)
   const [hasAutoCopied, setHasAutoCopied] = useState(false)
   const [pendingAutoCopy, setPendingAutoCopy] = useState(false)
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit")
@@ -34,37 +45,8 @@ export default function MarkdownPage() {
   const [copiedIcon, setCopiedIcon] = useState<
     "markdown" | "prompt" | "download" | null
   >(null)
-  const [toggles, setToggles] = useState({
-    includeImages: false,
-    includeLinks: true,
-    showMetadata: true,
-    showSourceUrl: true,
-    showPageMap: true,
-    autoCopy: false,
-    whitelist: ""
-  })
-  const [settingsLoaded, setSettingsLoaded] = useState(false)
+
   const settingsRef = useRef<HTMLDivElement>(null)
-  const [hasHostPermission, setHasHostPermission] = useState(true)
-
-  const checkHostPermission = () => {
-    if (typeof chrome !== "undefined" && chrome.permissions) {
-      chrome.permissions.contains({ origins: ["<all_urls>"] }, (result) => {
-        setHasHostPermission(!!result)
-      })
-    }
-  }
-
-  const requestHostPermission = () => {
-    if (typeof chrome !== "undefined" && chrome.permissions) {
-      chrome.permissions.request({ origins: ["<all_urls>"] }, (granted) => {
-        if (granted) {
-          setHasHostPermission(true)
-          triggerConversion()
-        }
-      })
-    }
-  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -82,30 +64,13 @@ export default function MarkdownPage() {
     }
   }, [showSettings])
 
-  // Load settings once on mount
-  useEffect(() => {
-    if (typeof chrome !== "undefined" && chrome.storage?.local) {
-      chrome.storage.local.get(["pagemark_settings"], (result) => {
-        if (result && result.pagemark_settings) {
-          setToggles((prev) => ({
-            ...prev,
-            ...result.pagemark_settings
-          }))
-        }
-        setSettingsLoaded(true)
-      })
-    } else {
-      setSettingsLoaded(true)
-    }
-  }, [])
-
   // Maintain port connection to background for synchronous toggling
   useEffect(() => {
     let port: any = null
     if (typeof chrome !== "undefined" && chrome.runtime?.connect) {
       port = chrome.runtime.connect({ name: "pagemark-sidepanel" })
       port.onMessage.addListener((msg: any) => {
-        if (msg && msg.action === "close") {
+        if (msg && msg.action === PM_MESSAGES.CLOSE) {
           window.close()
         }
       })
@@ -113,142 +78,6 @@ export default function MarkdownPage() {
     return () => {
       if (port) {
         port.disconnect()
-      }
-    }
-  }, [])
-
-  // Save settings when they change (only after they have been loaded)
-  useEffect(() => {
-    if (
-      settingsLoaded &&
-      typeof chrome !== "undefined" &&
-      chrome.storage?.local
-    ) {
-      chrome.storage.local.set({ pagemark_settings: toggles })
-    }
-  }, [toggles, settingsLoaded])
-
-  const triggerConversion = () => {
-    setStatus("Clipping...")
-    setError("")
-    checkHostPermission()
-    if (typeof chrome !== "undefined" && chrome.tabs) {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (typeof chrome !== "undefined" && chrome.runtime?.lastError) {
-          setError(chrome.runtime.lastError.message || "Failed to query tabs")
-          setStatus("")
-          return
-        }
-        const activeTab = tabs?.[0]
-        if (activeTab?.url && isRestrictedUrl(activeTab.url)) {
-          setError(
-            "This page cannot be clipped (restricted browser system page)."
-          )
-          setStatus("")
-          return
-        }
-        if (activeTab?.id) {
-          chrome.tabs.sendMessage(
-            activeTab.id,
-            { action: "convert-to-markdown" },
-            (response) => {
-              // Accessing lastError suppresses the browser console errors
-              if (chrome.runtime?.lastError) {
-                // Suppress logs and UI errors for expected background tab switch/loading port closures
-                setStatus("")
-              }
-            }
-          )
-        } else {
-          setError("No active tab found.")
-          setStatus("")
-        }
-      })
-    } else {
-      setError("Extension API not available.")
-      setStatus("")
-    }
-  }
-
-  useEffect(() => {
-    checkHostPermission()
-    // Trigger conversion on initial load/mount
-    triggerConversion()
-
-    let handleStorageChange: any = null
-    let handleMessage: any = null
-    let tabActivatedListener: any = null
-    let tabUpdatedListener: any = null
-
-    if (typeof chrome !== "undefined") {
-      if (chrome.storage?.local) {
-        // Load initial data
-        chrome.storage.local.get(["pageData"], (result) => {
-          if (typeof chrome !== "undefined" && chrome.runtime?.lastError) {
-            setError(chrome.runtime.lastError.message || "Failed to load")
-          } else if (result && result.pageData) {
-            setPageData(result.pageData)
-          }
-        })
-
-        // Listen for storage changes reactively
-        handleStorageChange = (changes: any, areaName: string) => {
-          if (areaName === "local" && changes && changes.pageData?.newValue) {
-            setPageData(changes.pageData.newValue)
-            setStatus("")
-          }
-        }
-        chrome.storage.onChanged.addListener(handleStorageChange)
-
-        // Listen for message channel from content.ts
-        handleMessage = (msg: any, sender: any, sendResponse: any) => {
-          if (msg && msg.action === "page-converted" && msg.pageData) {
-            setPageData(msg.pageData)
-            setStatus("")
-          } else if (msg && msg.action === "toggle-sidepanel") {
-            sendResponse({ status: "closed" })
-            setTimeout(() => {
-              window.close()
-            }, 50)
-          }
-          return true
-        }
-        chrome.runtime.onMessage.addListener(handleMessage)
-      }
-
-      if (chrome.tabs) {
-        tabActivatedListener = (activeInfo: any) => {
-          triggerConversion()
-        }
-        tabUpdatedListener = (tabId: number, changeInfo: any) => {
-          if (changeInfo.status === "complete") {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-              const activeTab = tabs?.[0]
-              if (activeTab?.id === tabId) {
-                triggerConversion()
-              }
-            })
-          }
-        }
-        chrome.tabs.onActivated.addListener(tabActivatedListener)
-        chrome.tabs.onUpdated.addListener(tabUpdatedListener)
-      }
-
-      return () => {
-        if (typeof chrome !== "undefined") {
-          if (chrome.storage?.onChanged && handleStorageChange) {
-            chrome.storage.onChanged.removeListener(handleStorageChange)
-          }
-          if (chrome.runtime?.onMessage && handleMessage) {
-            chrome.runtime.onMessage.removeListener(handleMessage)
-          }
-          if (chrome.tabs?.onActivated && tabActivatedListener) {
-            chrome.tabs.onActivated.removeListener(tabActivatedListener)
-          }
-          if (chrome.tabs?.onUpdated && tabUpdatedListener) {
-            chrome.tabs.onUpdated.removeListener(tabUpdatedListener)
-          }
-        }
       }
     }
   }, [])
@@ -310,10 +139,7 @@ export default function MarkdownPage() {
     }
 
     if (toggles.showPageMap) {
-      const pageMap = generatePageMap(
-        baseMd,
-        pageData.title || "Page structure map"
-      )
+      const pageMap = generatePageMap(baseMd)
       if (pageMap) {
         finalMd += pageMap + "\n---\n\n"
       }
@@ -339,7 +165,7 @@ export default function MarkdownPage() {
         if (activeTab?.id && !isRestrictedUrl(activeTab.url || "")) {
           chrome.tabs.sendMessage(
             activeTab.id,
-            { action: "copy-to-clipboard", text },
+            { action: PM_MESSAGES.COPY_TO_CLIPBOARD, text },
             (response) => {
               if (chrome.runtime?.lastError) {
                 if (isAuto) setPendingAutoCopy(true)
@@ -466,10 +292,6 @@ export default function MarkdownPage() {
         setCopiedIcon(null)
       }, 1500)
     })
-  }
-
-  const handleToggle = (key: keyof typeof toggles) => {
-    setToggles((p) => ({ ...p, [key]: !p[key] }))
   }
 
   const handleDownload = () => {

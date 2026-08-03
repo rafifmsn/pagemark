@@ -3,61 +3,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* dark scrollbar */
-html {
-  --bg-color: #1e1e1e;
-  --thumb-color: #454545;
-  --hover-color: #5a5a5a;
+@layer base {
+  :root {
+    --pm-bg-color: #1e1e1e;
+    --pm-scrollbar-thumb: #454545;
+    --pm-scrollbar-hover: #5a5a5a;
+    --pm-scrollbar-width: 8px;
+  }
 
-  /* standard syntax: [thumb color] [track color] */
-  scrollbar-color: var(--thumb-color) var(--bg-color);
-  scrollbar-width: thin; /* Options: auto, thin, none */
-}
+  /* Custom styled scrollbars */
+  html {
+    scrollbar-color: var(--pm-scrollbar-thumb) var(--pm-bg-color);
+    scrollbar-width: thin;
+  }
 
-::-webkit-scrollbar {
-  width: 10px; /* Width of the vertical scrollbar */
-  height: 10px; /* Height of the horizontal scrollbar */
-}
+  ::-webkit-scrollbar {
+    width: var(--pm-scrollbar-width);
+    height: var(--pm-scrollbar-width);
+  }
 
-/* The background of the scrollbar (track) */
-::-webkit-scrollbar-track {
-  background: #1e1e1e; /* Dark background */
-}
+  ::-webkit-scrollbar-track {
+    background: var(--pm-bg-color);
+  }
 
-/* The draggable part (thumb) */
-::-webkit-scrollbar-thumb {
-  background-color: #454545; /* Dark grey thumb */
-  border-radius: 10px; /* Rounded corners */
-  border: 3px solid #1e1e1e; /* Creates padding effect around thumb */
-}
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--pm-scrollbar-thumb);
+    border-radius: 8px;
+    border: 2px solid var(--pm-bg-color);
+  }
 
-/* Thumb on hover */
-::-webkit-scrollbar-thumb:hover {
-  background-color: #5a5a5a; /* Slightly lighter when hovering */
-}
-
-/* Interactive Components (Tables, Tasks, Lists) */
-.md-preview table {
-  display: inline-block !important;
-  max-width: 100% !important;
-  width: auto !important;
-  overflow-x: auto !important;
-  border-collapse: collapse;
-  margin: 1.5rem 0;
-  font-size: 13px;
-  vertical-align: top;
-  -webkit-overflow-scrolling: touch;
-}
-.md-preview th,
-.md-preview td {
-  border: 1px solid #27272a !important;
-  padding: 8px 12px !important;
-  text-align: left;
-  white-space: nowrap !important;
-}
-.md-preview th {
-  background: #18181b !important;
-  color: #fafafa !important;
-  font-weight: 600;
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--pm-scrollbar-hover);
+  }
 }
 
+@layer components {
+  /* Scope table display styles for custom markdown container */
+  .md-preview table {
+    display: inline-block !important;
+    max-width: 100% !important;
+    width: auto !important;
+    overflow-x: auto !important;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 13px;
+    vertical-align: top;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .md-preview th,
+  .md-preview td {
+    border: 1px solid #27272a !important;
+    padding: 8px 12px !important;
+    text-align: left;
+    white-space: nowrap !important;
+  }
+
+  .md-preview th {
+    background: #18181b !important;
+    color: #fafafa !important;
+    font-weight: 600;
+  }
+}

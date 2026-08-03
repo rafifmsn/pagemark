@@ -1,4 +1,5 @@
-import { isRestrictedUrl } from "./utils/helpers"
+import { isRestrictedUrl } from "pagemark-core"
+import { PM_MESSAGES } from "~/lib/messages"
 
 // Set sidepanel behavior on install/startup
 if (typeof chrome !== "undefined" && chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
@@ -37,14 +38,14 @@ const handleConvertToMarkdown = (tab: chrome.tabs.Tab, toggle = false) => {
 
   const sendMessage = () => {
     chrome.tabs
-      .sendMessage(tab.id!, { action: "convert-to-markdown" })
+      .sendMessage(tab.id!, { action: PM_MESSAGES.CONVERT })
       .catch((err) =>
         console.log("Content script not ready or an extension page.", err)
       )
   }
 
   if (toggle && sidePanelPort) {
-    sidePanelPort.postMessage({ action: "close" })
+    sidePanelPort.postMessage({ action: PM_MESSAGES.CLOSE })
     return
   }
 
@@ -97,7 +98,7 @@ if (typeof chrome !== "undefined" && chrome.action && chrome.action.onClicked) {
 
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "open-markdown-tab") {
+  if (request.action === PM_MESSAGES.OPEN_MARKDOWN_TAB) {
     // Open the new tab page
     chrome.tabs.create({ url: chrome.runtime.getURL("tabs/markdown.html") })
   }
