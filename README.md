@@ -25,14 +25,14 @@ Pagemark is a modern web extension designed for researchers, developers, and AI 
 - **Co-existing Workspace**: Runs inside a native browser Side Panel (Chrome) or Sidebar (Firefox), letting you view, edit, and preview markdown side-by-side with your active webpage.
 - **Smart Content Extraction**: Utilizes an isolated core readability parser to extract main body content while stripping out distracting ads, popups, and navigation bars.
 - **Live Markdown Preview**: Split tab view containing a raw **Markdown Editor** (with text area & character count) and a rendered **Live Preview** (with custom scrollable GFM tables).
-- **Decimal Outline Map**: Injects a clean, numbered decimal hierarchy outline map representing the document heading structure (omitting the document title, as it is already displayed in the header).
+- **Absolute Heading Outline Map**: Injects a clean hierarchy outline map representing the document heading structure, with absolute indentation levels matching each heading type and explicit indicators for skipped heading levels.
 - **Defensive Guards**: Built-in blockades protecting against execution errors on internal browser/system URLs.
 - **Persistent Preferences**: All toggles and preferences are stored in local storage and auto-saved instantly:
   - **Include Images**: Toggle to keep or strip image tags.
   - **Include Links**: Toggle to preserve hyperlinks or keep just the anchor text.
-  - **Include Info**: Adds page metadata (Title and timezone-aware Created timestamp).
+  - **Include Info**: Adds page metadata (Title and standard ISO-8601 Created timestamp).
   - **Include Source**: Appends the source page URL.
-  - **Include Map**: Generates the decimal heading outline.
+  - **Include Map**: Generates the absolute heading outline map.
   - **Smart Auto-Copy**: Automatically copies converted markdown to the clipboard upon switching active tabs (backed by cross-context delegation for Firefox stability), complete with customizable site whitelisting (e.g., `*.google.com`, `localhost:3000`) to disable execution on specific hosts.
 
 ## Installation & Setup

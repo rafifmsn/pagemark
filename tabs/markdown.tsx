@@ -1,6 +1,6 @@
 import Markdown from "markdown-to-jsx/react"
 import {
-  generatePageMap,
+  formatMarkdown,
   isRestrictedUrl,
   isUrlWhitelisted
 } from "pagemark-core"
@@ -91,65 +91,11 @@ export default function MarkdownPage() {
   useEffect(() => {
     if (!pageData || !pageData.markdown) return
 
-    let baseMd = pageData.markdown
-
-    if (!toggles.includeImages) {
-      baseMd = baseMd.replace(/!\[([^\]]*)\]\([^)]+\)/g, "")
-      baseMd = baseMd.replace(/<img[^>]*>/gi, "")
-    }
-
-    if (!toggles.includeLinks) {
-      baseMd = baseMd.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-      baseMd = baseMd.replace(/<a[^>]*>(.*?)<\/a>/gi, "$1")
-    }
-
-    let finalMd = ""
-    let meta = []
-
-    if (toggles.showMetadata) {
-      if (pageData.title) meta.push(`**Title:** ${pageData.title}`)
-
-      // Format current timestamp with timezone
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, "0")
-      const day = String(now.getDate()).padStart(2, "0")
-      const hours = String(now.getHours()).padStart(2, "0")
-      const minutes = String(now.getMinutes()).padStart(2, "0")
-      const seconds = String(now.getSeconds()).padStart(2, "0")
-      const offsetMinutes = now.getTimezoneOffset()
-      const offsetAbs = Math.abs(offsetMinutes)
-      const offsetHours = String(Math.floor(offsetAbs / 60)).padStart(2, "0")
-      const offsetRemainingMinutes = String(offsetAbs % 60).padStart(2, "0")
-      const sign = offsetMinutes <= 0 ? "+" : "-"
-      const tzString =
-        offsetMinutes === 0
-          ? "UTC"
-          : `UTC ${sign}${offsetHours}:${offsetRemainingMinutes}`
-      const createdStr = `${year}-${month}-${day}T${hours}:${minutes}:${seconds} (${tzString})`
-
-      meta.push(`**Created:** ${createdStr}`)
-    }
-    if (toggles.showSourceUrl && pageData.url) {
-      meta.push(`**Source:** [${pageData.url}](${pageData.url})`)
-    }
-
-    if (meta.length > 0) {
-      finalMd += meta.join("\n\n") + "\n\n---\n\n"
-    }
-
-    if (toggles.showPageMap) {
-      const pageMap = generatePageMap(baseMd)
-      if (pageMap) {
-        finalMd += pageMap + "\n---\n\n"
-      }
-    }
-
-    finalMd += baseMd
-
-    finalMd = finalMd.replace(/^[ \t]*[-·][ \t]*$/gm, "")
-    finalMd = finalMd.replace(/^[ \t]+$/gm, "")
-    finalMd = finalMd.replace(/\n{3,}/g, "\n\n").trim()
+    const finalMd = formatMarkdown(
+      pageData.markdown,
+      { title: pageData.title, url: pageData.url },
+      toggles
+    )
 
     setMarkdown(finalMd)
   }, [pageData, toggles])
