@@ -10,7 +10,8 @@ export const PM_MESSAGES = {
   OPEN_MARKDOWN_TAB: "pm:open-markdown-tab",
   PAGE_CONVERTED: "pm:page-converted",
   COPY_TO_CLIPBOARD: "pm:copy-to-clipboard",
-  TOGGLE_SIDEPANEL: "pm:toggle-sidepanel"
+  TOGGLE_SIDEPANEL: "pm:toggle-sidepanel",
+  TRIGGER_WEBHOOK: "pm:trigger-webhook"
 } as const
 
 export type PMMessageAction = typeof PM_MESSAGES[keyof typeof PM_MESSAGES]

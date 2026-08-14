@@ -96,11 +96,81 @@ if (typeof chrome !== "undefined" && chrome.action && chrome.action.onClicked) {
   })
 }
 
+function isValidWebhookUrl(urlStr: string): boolean {
+  try {
+    const url = new URL(urlStr)
+    if (url.protocol === "https:") {
+      return true
+    }
+    if (url.protocol === "http:") {
+      const hostname = url.hostname.toLowerCase()
+      return (
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname.endsWith(".localhost")
+      )
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === PM_MESSAGES.OPEN_MARKDOWN_TAB) {
     // Open the new tab page
     chrome.tabs.create({ url: chrome.runtime.getURL("tabs/markdown.html") })
+  } else if (request.action === PM_MESSAGES.TRIGGER_WEBHOOK) {
+    if (!request.webhookUrl) {
+      sendResponse({ success: false, error: "Webhook URL is not configured." })
+      return false
+    }
+
+    if (!isValidWebhookUrl(request.webhookUrl)) {
+      sendResponse({ success: false, error: "Only HTTPS endpoints are allowed (except localhost)." })
+      return false
+    }
+
+    const headersObj: Record<string, string> = {}
+    if (Array.isArray(request.webhookHeaders)) {
+      for (const h of request.webhookHeaders) {
+        if (h.key && h.key.trim()) {
+          headersObj[h.key.trim()] = h.value || ""
+        }
+      }
+    }
+
+    fetch(request.webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...headersObj
+      },
+      body: JSON.stringify({
+        markdown: request.markdown,
+        title: request.title,
+        url: request.url,
+        author: request.author,
+        date: request.date
+      })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => "")
+          throw new Error(`Server returned HTTP ${res.status}: ${text || res.statusText}`)
+        }
+        return res.text().catch(() => "")
+      })
+      .then((data) => {
+        sendResponse({ success: true, data })
+      })
+      .catch((err) => {
+        console.error("Webhook trigger failed:", err)
+        sendResponse({ success: false, error: err.message })
+      })
+
+    return true // Keep channel open for async response
   }
 })
 
