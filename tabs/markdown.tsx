@@ -10,15 +10,19 @@ import { usePagemarkSettings } from "./hooks/useSettings"
 import { usePageData } from "./hooks/usePageData"
 
 import {
+  Calendar as CalendarIcon,
   Check as CheckIcon,
+  Code as CodeIcon,
   Copy as CopyIcon,
   Download as DownloadIcon,
+  Heading as TitleIcon,
   Image as ImageIcon,
+  Link as SourceUrlIcon,
   Link2 as LinkIcon,
   Map as MapIcon,
-  FileUser as MetaDataIcon,
+  Send as SendIcon,
   SlidersVertical as SettingsIcon,
-  Link as SourceUrlIcon,
+  Table as TableIcon,
   Trash2 as TrashIcon
 } from "lucide-react"
 
@@ -45,6 +49,8 @@ export default function MarkdownPage() {
   const [copiedIcon, setCopiedIcon] = useState<
     "markdown" | "prompt" | "download" | null
   >(null)
+  const [webhookSending, setWebhookSending] = useState(false)
+  const [webhookStatus, setWebhookStatus] = useState<"success" | "error" | null>(null)
 
   const settingsRef = useRef<HTMLDivElement>(null)
 
@@ -93,7 +99,11 @@ export default function MarkdownPage() {
 
     const finalMd = formatMarkdown(
       pageData.markdown,
-      { title: pageData.title, url: pageData.url },
+      {
+        title: pageData.title,
+        url: pageData.url,
+        date: pageData.date ? new Date(pageData.date) : undefined
+      },
       toggles
     )
 
@@ -259,6 +269,73 @@ export default function MarkdownPage() {
     }, 1500)
   }
 
+  const handleSendWebhook = () => {
+    if (!toggles.webhookUrl) return
+    setWebhookSending(true)
+    setWebhookStatus(null)
+    setStatus("Sending webhook...")
+
+    chrome.runtime.sendMessage(
+      {
+        action: PM_MESSAGES.TRIGGER_WEBHOOK,
+        markdown,
+        title: pageData?.title,
+        url: pageData?.url,
+        author: pageData?.author,
+        date: pageData?.date,
+        webhookUrl: toggles.webhookUrl,
+        webhookHeaders: toggles.webhookHeaders
+      },
+      (response) => {
+        setWebhookSending(false)
+        if (response && response.success) {
+          setWebhookStatus("success")
+          setStatus("Webhook sent!")
+          setTimeout(() => {
+            setWebhookStatus(null)
+            setStatus("")
+          }, 2000)
+        } else {
+          setWebhookStatus("error")
+          const errMsg = response?.error || "Connection failed"
+          setStatus(`Webhook failed: ${errMsg}`)
+          setTimeout(() => {
+            setWebhookStatus(null)
+            setStatus("")
+          }, 3000)
+        }
+      }
+    )
+  }
+
+  const handleHeaderChange = (
+    index: number,
+    field: "key" | "value",
+    val: string
+  ) => {
+    setToggles((prev) => {
+      const updatedHeaders = [...(prev.webhookHeaders || [])]
+      if (updatedHeaders[index]) {
+        updatedHeaders[index] = { ...updatedHeaders[index], [field]: val }
+      }
+      return { ...prev, webhookHeaders: updatedHeaders }
+    })
+  }
+
+  const handleAddHeader = () => {
+    setToggles((prev) => ({
+      ...prev,
+      webhookHeaders: [...(prev.webhookHeaders || []), { key: "", value: "" }]
+    }))
+  }
+
+  const handleRemoveHeader = (index: number) => {
+    setToggles((prev) => ({
+      ...prev,
+      webhookHeaders: (prev.webhookHeaders || []).filter((_, idx) => idx !== index)
+    }))
+  }
+
   const tokenEstimate = Math.ceil(markdown.length / 4)
 
   return (
@@ -284,9 +361,9 @@ export default function MarkdownPage() {
                 <SettingsIcon className="w-3.5 h-3.5" />
               </button>
               {showSettings && (
-                <div className="absolute right-0 mt-2 w-64 rounded-xl border border-zinc-800/80 bg-zinc-900/95 backdrop-blur-xl shadow-2xl p-2.5 z-50 flex flex-col gap-1.5">
+                <div className="absolute right-0 mt-2 w-64 rounded-xl border border-zinc-800/80 bg-zinc-900/95 backdrop-blur-xl shadow-2xl p-2.5 z-50 flex flex-col gap-1.5 max-h-[75vh] overflow-y-auto">
                   <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider px-1">
-                    Filters & Options
+                    Filters & Content
                   </div>
                   <div className="h-px bg-zinc-800/60 my-0.5" />
                   <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
@@ -315,32 +392,62 @@ export default function MarkdownPage() {
                   </label>
                   <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
                     <span className="flex items-center gap-2">
-                      <MetaDataIcon className="w-3.5 h-3.5 opacity-70" />
-                      Include Info
+                      <CodeIcon className="w-3.5 h-3.5 opacity-70" />
+                      Include Code Blocks
                     </span>
                     <input
                       type="checkbox"
-                      checked={toggles.showMetadata}
-                      onChange={() => handleToggle("showMetadata")}
+                      checked={toggles.includeCodeBlocks}
+                      onChange={() => handleToggle("includeCodeBlocks")}
                       className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
                     />
                   </label>
                   <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
                     <span className="flex items-center gap-2">
-                      <MapIcon className="w-3.5 h-3.5 opacity-70" />
-                      Include Map
+                      <TableIcon className="w-3.5 h-3.5 opacity-70" />
+                      Include Tables
                     </span>
                     <input
                       type="checkbox"
-                      checked={toggles.showPageMap}
-                      onChange={() => handleToggle("showPageMap")}
+                      checked={toggles.includeTables}
+                      onChange={() => handleToggle("includeTables")}
+                      className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
+                    />
+                  </label>
+
+                  <div className="h-px bg-zinc-800/60 my-0.5" />
+                  <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider px-1">
+                    Front Matter Headers
+                  </div>
+                  <div className="h-px bg-zinc-800/60 my-0.5" />
+                  <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
+                    <span className="flex items-center gap-2">
+                      <TitleIcon className="w-3.5 h-3.5 opacity-70" />
+                      Include Title
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={toggles.showTitle}
+                      onChange={() => handleToggle("showTitle")}
+                      className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
+                    <span className="flex items-center gap-2">
+                      <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
+                      Include Date
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={toggles.showDate}
+                      onChange={() => handleToggle("showDate")}
                       className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
                     />
                   </label>
                   <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
                     <span className="flex items-center gap-2">
                       <SourceUrlIcon className="w-3.5 h-3.5 opacity-70" />
-                      Include Source
+                      Include Source URL
                     </span>
                     <input
                       type="checkbox"
@@ -349,10 +456,49 @@ export default function MarkdownPage() {
                       className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
                     />
                   </label>
+
+                  <div className="h-px bg-zinc-800/60 my-0.5" />
+                  <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider px-1">
+                    Page Map Options
+                  </div>
+                  <div className="h-px bg-zinc-800/60 my-0.5" />
+                  <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
+                    <span className="flex items-center gap-2">
+                      <MapIcon className="w-3.5 h-3.5 opacity-70" />
+                      Include Page Map
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={toggles.showPageMap}
+                      onChange={() => handleToggle("showPageMap")}
+                      className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
+                    />
+                  </label>
+                  {toggles.showPageMap && (
+                    <div className="flex items-center justify-between text-xs text-zinc-400 pl-6 pr-1.5 py-1">
+                      <span className="flex items-center gap-2">
+                        Format
+                      </span>
+                      <select
+                        value={toggles.pageMapStyle || "text"}
+                        onChange={(e) =>
+                          setToggles((p) => ({
+                            ...p,
+                            pageMapStyle: e.target.value as "text" | "links"
+                          }))
+                        }
+                        className="bg-zinc-950 border border-zinc-800 text-zinc-300 text-[10px] rounded p-1 outline-none focus:border-zinc-750">
+                        <option value="text">Plain Text</option>
+                        <option value="links">Clickable TOC</option>
+                      </select>
+                    </div>
+                  )}
+
                   <div className="h-px bg-zinc-800/60 my-0.5" />
                   <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider px-1">
                     Automation
                   </div>
+                  <div className="h-px bg-zinc-800/60 my-0.5" />
                   <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
                     <span className="flex items-center gap-2">
                       <svg
@@ -380,6 +526,7 @@ export default function MarkdownPage() {
                       className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
                     />
                   </label>
+
                   <div className="flex flex-col gap-1 px-1 mt-1">
                     <span className="text-[10px] text-zinc-400 font-medium">
                       Whitelist URL Patterns
@@ -394,6 +541,62 @@ export default function MarkdownPage() {
                       className="w-full text-[11px] p-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 placeholder-zinc-650 focus:outline-none focus:border-zinc-700 resize-none font-mono"
                     />
                   </div>
+
+                  <div className="flex flex-col gap-1 px-1 mt-1.5">
+                    <span className="text-[10px] text-zinc-400 font-medium">
+                      Webhook Target URL
+                    </span>
+                    <input
+                      type="text"
+                      value={toggles.webhookUrl || ""}
+                      onChange={(e) =>
+                        setToggles((p) => ({ ...p, webhookUrl: e.target.value }))
+                      }
+                      placeholder="https://your-api.com/webhook"
+                      className="w-full text-[11px] p-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-300 placeholder-zinc-650 focus:outline-none focus:border-zinc-700 font-mono"
+                    />
+                  </div>
+                  {toggles.webhookUrl && (
+                    <div className="flex flex-col gap-1 px-1 mt-1.5">
+                      <span className="text-[10px] text-zinc-400 font-medium flex justify-between items-center">
+                        <span>Custom Headers</span>
+                        <button
+                          onClick={handleAddHeader}
+                          className="text-[9px] text-slate-400 hover:text-slate-200">
+                          + Add Header
+                        </button>
+                      </span>
+                      <div className="flex flex-col gap-1 max-h-24 overflow-y-auto pr-0.5">
+                        {(toggles.webhookHeaders || []).map((header, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              placeholder="Name"
+                              value={header.key}
+                              onChange={(e) =>
+                                handleHeaderChange(idx, "key", e.target.value)
+                              }
+                              className="flex-1 min-w-0 text-[10px] px-1 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-350 focus:outline-none font-mono"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Value"
+                              value={header.value}
+                              onChange={(e) =>
+                                handleHeaderChange(idx, "value", e.target.value)
+                              }
+                              className="flex-1 min-w-0 text-[10px] px-1 py-0.5 bg-zinc-950 border border-zinc-800 rounded text-zinc-350 focus:outline-none font-mono"
+                            />
+                            <button
+                              onClick={() => handleRemoveHeader(idx)}
+                              className="text-zinc-500 hover:text-red-400 text-[11px] px-0.5">
+                              &times;
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -411,6 +614,26 @@ export default function MarkdownPage() {
             )}
             Copy MD
           </button>
+          {toggles.webhookUrl && (
+            <button
+              onClick={handleSendWebhook}
+              disabled={webhookSending}
+              className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 transition-all duration-200 active:scale-[0.98] outline-none disabled:opacity-50">
+              {webhookSending ? (
+                <svg className="animate-spin h-3.5 w-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : webhookStatus === "success" ? (
+                <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
+              ) : webhookStatus === "error" ? (
+                <span className="text-red-500 font-bold">!</span>
+              ) : (
+                <SendIcon className="w-3.5 h-3.5 opacity-90" />
+              )}
+              Webhook
+            </button>
+          )}
           <button
             onClick={handleCopyPrompt}
             className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 transition-all duration-200 active:scale-[0.98] outline-none">

@@ -3,9 +3,15 @@ import { useEffect, useState } from "react"
 export interface PagemarkSettings {
   includeImages: boolean
   includeLinks: boolean
-  showMetadata: boolean
+  includeCodeBlocks: boolean
+  includeTables: boolean
+  showTitle: boolean
+  showDate: boolean
   showSourceUrl: boolean
   showPageMap: boolean
+  pageMapStyle: "text" | "links"
+  webhookUrl: string
+  webhookHeaders: Array<{ key: string; value: string }>
   autoCopy: boolean
   whitelist: string
 }
@@ -13,9 +19,15 @@ export interface PagemarkSettings {
 const DEFAULT_SETTINGS: PagemarkSettings = {
   includeImages: false,
   includeLinks: true,
-  showMetadata: true,
+  includeCodeBlocks: true,
+  includeTables: true,
+  showTitle: true,
+  showDate: true,
   showSourceUrl: true,
   showPageMap: true,
+  pageMapStyle: "text",
+  webhookUrl: "",
+  webhookHeaders: [],
   autoCopy: false,
   whitelist: ""
 }
@@ -28,9 +40,20 @@ export function usePagemarkSettings() {
     if (typeof chrome !== "undefined" && chrome.storage?.local) {
       chrome.storage.local.get(["pagemark_settings"], (result) => {
         if (result && result.pagemark_settings) {
+          const loaded = { ...result.pagemark_settings }
+          // Migrate showMetadata to showTitle and showDate
+          if (loaded.showMetadata !== undefined) {
+            if (loaded.showTitle === undefined) {
+              loaded.showTitle = loaded.showMetadata
+            }
+            if (loaded.showDate === undefined) {
+              loaded.showDate = loaded.showMetadata
+            }
+            delete loaded.showMetadata
+          }
           setToggles((prev) => ({
             ...prev,
-            ...result.pagemark_settings
+            ...loaded
           }))
         }
         setSettingsLoaded(true)

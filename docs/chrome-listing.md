@@ -32,8 +32,10 @@ Features
 - Customize and auto-save your extraction settings for a perfectly tailored workflow:
   • Toggle Images: Choose to preserve critical graphic tags or completely strip them out.
   • Toggle Links: Keep active hyperlinks for reference or instantly flatten them to plaintext.
-  • Metadata Headers: Auto-inject page title, source URL, and timezone-aware timestamps.
-  • Outline Map: Generate a hierarchical tree structure outline of page headers instantly.
+  • Toggle Code Blocks & Tables: Clean up technical articles by removing code blocks and tables to save prompt space.
+  • Metadata Headers: Control page title, timezone-aware conversion date, and source URL front matter independently.
+  • Outline Map: Generate a clean hierarchical outline. Choose between Plain Text or Clickable TOC formats (with automatic gap collapsing).
+  • Custom Webhooks: Specify a remote POST endpoint with custom key-value headers (e.g. Bearer auth) to safely push markdown straight from the V3 background service worker.
 
 📥 Versatile Prompt & Export Utilities
 - Copy MD: Grab raw, standardized Markdown to your clipboard in milliseconds.

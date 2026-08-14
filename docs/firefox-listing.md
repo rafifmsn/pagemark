@@ -19,7 +19,7 @@ Pagemark instantly strips away tracking banners, ads, navigation menus, and cook
 * **Local Readability Parser:** Automatically isolates the main body text, articles, and code blocks. Execution happens entirely in your browser with zero server wait times or tracking.
 * **Native Sidebar Workspace:** The extension opens directly in the Firefox sidebar (Alt + K), allowing you to view, edit, and preview the Markdown output side-by-side with the live source page.
 * **Editor & Live Token Counter:** Switch seamlessly between a raw Markdown editor and a fully rendered visual preview. Built-in character and token counters help you monitor size limits before pasting into AI interfaces.
-* **Persistent Customization:** Tailor the extraction to your exact needs. Toggle images and hyperlinks on or off, automatically inject metadata headers (title, source URL, timestamps), or generate a hierarchical outline map of the page headers.
+* **Persistent Customization:** Tailor the extraction to your exact needs. Toggle images, hyperlinks, code blocks, or tables on/off. Auto-inject independent metadata headers (title, source URL, conversion date), generate a clean hierarchical outline map (Plain Text or Clickable TOC), or configure custom HTTPS webhooks with headers (e.g. Bearer auth) to safely push markdown directly to your external knowledge base.
 
 **Optimized Export Utilities**
 
