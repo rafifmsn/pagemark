@@ -1,7 +1,7 @@
 {
   "name": "pagemark",
   "displayName": "Pagemark",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Clip any web page to clean Markdown with side panel, auto-copy whitelist, and token counter",
   "author": "Rafif Muchsin <rafif@rafifmsn.com>",
   "homepage": "https://github.com/rafifmsn/pagemark",

@@ -51,6 +51,7 @@ export default function MarkdownPage() {
   >(null)
   const [webhookSending, setWebhookSending] = useState(false)
   const [webhookStatus, setWebhookStatus] = useState<"success" | "error" | null>(null)
+  const [hasAutoSentWebhook, setHasAutoSentWebhook] = useState(false)
 
   const settingsRef = useRef<HTMLDivElement>(null)
 
@@ -91,6 +92,7 @@ export default function MarkdownPage() {
   useEffect(() => {
     if (pageData) {
       setHasAutoCopied(false)
+      setHasAutoSentWebhook(false)
     }
   }, [pageData])
 
@@ -274,6 +276,7 @@ export default function MarkdownPage() {
     setWebhookSending(true)
     setWebhookStatus(null)
     setStatus("Sending webhook...")
+    setHasAutoSentWebhook(true)
 
     chrome.runtime.sendMessage(
       {
@@ -307,6 +310,17 @@ export default function MarkdownPage() {
       }
     )
   }
+
+  useEffect(() => {
+    if (
+      toggles.autoWebhook &&
+      toggles.webhookUrl &&
+      markdown &&
+      !hasAutoSentWebhook
+    ) {
+      handleSendWebhook()
+    }
+  }, [markdown, hasAutoSentWebhook, toggles.autoWebhook, toggles.webhookUrl, handleSendWebhook])
 
   const handleHeaderChange = (
     index: number,
@@ -523,6 +537,18 @@ export default function MarkdownPage() {
                       type="checkbox"
                       checked={toggles.autoCopy}
                       onChange={() => handleToggle("autoCopy")}
+                      className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between text-xs text-zinc-300 cursor-pointer hover:bg-zinc-850 p-1.5 rounded-lg transition-colors">
+                    <span className="flex items-center gap-2">
+                      <SendIcon className="w-3.5 h-3.5 opacity-70" />
+                      Auto-send Webhook
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={toggles.autoWebhook}
+                      onChange={() => handleToggle("autoWebhook")}
                       className="accent-slate-500 h-3.5 w-3.5 rounded border-zinc-850 bg-zinc-950 cursor-pointer"
                     />
                   </label>
