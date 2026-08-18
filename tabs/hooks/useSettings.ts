@@ -13,6 +13,7 @@ export interface PagemarkSettings {
   webhookUrl: string
   webhookHeaders: Array<{ key: string; value: string }>
   autoCopy: boolean
+  autoWebhook: boolean
   whitelist: string
 }
 
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS: PagemarkSettings = {
   webhookUrl: "",
   webhookHeaders: [],
   autoCopy: false,
+  autoWebhook: false,
   whitelist: ""
 }
 

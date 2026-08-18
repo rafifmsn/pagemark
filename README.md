@@ -39,6 +39,56 @@ Pagemark is a modern web extension designed for researchers, developers, and AI 
 - **Custom Webhook Integration**: A settings field where users can input their target endpoint URL and custom key-value headers (for API token auth). The POST fetch request is executed securely inside the background service worker context (`background.ts`), protecting keys from site XSS sniffing. Enforces HTTPS transport. See [System Architecture & Webhook Security](docs/architecture.md) for details.
 - **Smart Auto-Copy**: Automatically copies converted markdown to the clipboard upon switching active tabs (backed by cross-context delegation for Firefox stability), complete with customizable site whitelisting (e.g., `*.google.com`, `localhost:3000`) to disable execution on specific hosts.
 
+## Webhook Integration
+
+Pagemark allows you to send the converted markdown and its metadata directly to any custom endpoint (e.g., your personal server, database, or automation tools like N8N, Zapier, or a custom webhook receiver).
+
+### Request Payload
+
+When the webhook is triggered, Pagemark sends a `POST` request with `Content-Type: application/json` and a JSON body containing the following properties:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `markdown` | `string` | The extracted page content converted into Markdown format. |
+| `title` | `string` | The title of the page. |
+| `url` | `string` | The source URL of the page. |
+| `author` | `string` | The author of the webpage (if detected by the readability parser). |
+| `date` | `string` | The ISO-8601 formatted timestamp of the conversion. |
+
+Example payload:
+```json
+{
+  "markdown": "# Article Title\n\nArticle body content...",
+  "title": "Article Title",
+  "url": "https://example.com/article",
+  "author": "John Doe",
+  "date": "2026-08-18T08:35:48.000Z"
+}
+```
+
+### Local Testing
+
+To test the webhook feature locally, you can use the built-in test server:
+
+1. Run the test server:
+   ```bash
+   npm run webhook-test
+   ```
+   This starts a local HTTP server at `http://localhost:8080` that logs incoming payloads.
+
+2. Open the Pagemark settings (gear icon) in the browser sidebar.
+3. Configure the following values:
+   - **Webhook URL**: `http://localhost:8080`
+   - **Headers**:
+     - Key: `Authorization`
+     - Value: `Bearer token123`
+4. Click **Save Settings** and click **Send Webhook** on any converted page. The test server will print the metadata and markdown preview in your terminal and respond with:
+   ```json
+   { "success": true, "message": "Webhook received successfully!" }
+   ```
+
+*Tip: You can also toggle **Auto-send Webhook** in the settings under **Automation** to automatically dispatch the payload as soon as any page is converted.*
+
 ## Installation & Setup
 
 Pagemark is built on the [Plasmo](https://docs.plasmo.com/) extension framework with React and Tailwind CSS, with `@mozilla/readability` and `turndown` imported from [pagemark-core](https://github.com/rafifmsn/pagemark-core).
