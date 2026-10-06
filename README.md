@@ -91,7 +91,7 @@ To test the webhook feature locally, you can use the built-in test server:
 
 ## Installation & Setup
 
-Pagemark is built on the [Plasmo](https://docs.plasmo.com/) extension framework with React and Tailwind CSS, with `@mozilla/readability` and `turndown` imported from [pagemark-core](https://github.com/rafifmsn/pagemark-core).
+Pagemark is built on the [Plasmo](https://docs.plasmo.com/) extension framework with React and Tailwind CSS, utilizing `defuddle-js` and `turndown` for clean HTML-to-Markdown extraction.
 
 ### 1. Clone & Install
 

@@ -1,5 +1,5 @@
 import type { PlasmoCSConfig } from "plasmo"
-import { parseHtmlToMarkdown } from "pagemark-core"
+import { parseHtmlToMarkdown } from "~/lib/parser"
 import { PM_MESSAGES } from "~/lib/messages"
 
 export const config: PlasmoCSConfig = {

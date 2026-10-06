@@ -1,4 +1,4 @@
-import { isRestrictedUrl } from "pagemark-core"
+import { isRestrictedUrl } from "~/lib/url"
 import { PM_MESSAGES } from "~/lib/messages"
 
 // Set sidepanel behavior on install/startup

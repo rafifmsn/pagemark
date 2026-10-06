@@ -1,9 +1,6 @@
 import Markdown from "markdown-to-jsx/react"
-import {
-  formatMarkdown,
-  isRestrictedUrl,
-  isUrlWhitelisted
-} from "pagemark-core"
+import { formatMarkdown } from "~/lib/parser"
+import { isRestrictedUrl, isUrlWhitelisted } from "~/lib/url"
 import { useEffect, useRef, useState } from "react"
 import { PM_MESSAGES } from "~/lib/messages"
 import { usePagemarkSettings } from "./hooks/useSettings"

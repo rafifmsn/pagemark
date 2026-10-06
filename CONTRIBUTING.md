@@ -66,7 +66,7 @@ We follow standard commit formats:
 Before submitting a PR, make sure your code builds successfully and all unit tests pass.
 
 ### Unit Tests
-We use **Vitest** for fast, lightweight helper testing.
+Run the automated test suite to verify parser, formatting, and URL logic:
 ```bash
 npm run test
 ```

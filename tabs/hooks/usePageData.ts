@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { isRestrictedUrl } from "pagemark-core"
+import { isRestrictedUrl } from "~/lib/url"
 import { PM_MESSAGES } from "~/lib/messages"
 
 export function usePageData() {
