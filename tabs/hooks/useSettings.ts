@@ -15,6 +15,7 @@ export interface PagemarkSettings {
   autoCopy: boolean
   autoWebhook: boolean
   whitelist: string
+  clipWhitelist: string
 }
 
 const DEFAULT_SETTINGS: PagemarkSettings = {
@@ -31,7 +32,8 @@ const DEFAULT_SETTINGS: PagemarkSettings = {
   webhookHeaders: [],
   autoCopy: false,
   autoWebhook: false,
-  whitelist: ""
+  whitelist: "",
+  clipWhitelist: ""
 }
 
 export function usePagemarkSettings() {

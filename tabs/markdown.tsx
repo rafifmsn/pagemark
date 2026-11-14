@@ -1,22 +1,29 @@
 import Markdown from "markdown-to-jsx/react"
-import { formatMarkdown } from "~/lib/parser"
+import { formatMarkdown, mergeMarkdownItems } from "~/lib/parser"
 import { isRestrictedUrl, isUrlWhitelisted } from "~/lib/url"
-import { useEffect, useRef, useState } from "react"
+import type { CollectionItem } from "~/lib/collection"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { PM_MESSAGES } from "~/lib/messages"
 import { usePagemarkSettings } from "./hooks/useSettings"
 import { usePageData } from "./hooks/usePageData"
+import { useCollection } from "./hooks/useCollection"
+import { ConfirmDialog } from "./components/ConfirmDialog"
+import { HistoryQueueView } from "./components/HistoryQueueView"
 
 import {
+  ArrowLeft as ArrowLeftIcon,
   Calendar as CalendarIcon,
   Check as CheckIcon,
   Code as CodeIcon,
   Copy as CopyIcon,
   Download as DownloadIcon,
   Heading as TitleIcon,
+  History as HistoryIcon,
   Image as ImageIcon,
   Link as SourceUrlIcon,
   Link2 as LinkIcon,
   Map as MapIcon,
+  RefreshCw as RefreshIcon,
   Send as SendIcon,
   SlidersVertical as SettingsIcon,
   Table as TableIcon,
@@ -37,17 +44,31 @@ export default function MarkdownPage() {
     requestHostPermission,
     triggerConversion
   } = usePageData()
+  const {
+    allItems,
+    readyItems,
+    quotaStatus,
+    clearAll,
+    removeItem,
+    enqueueUrl,
+    clipAllTabs
+  } = useCollection()
 
   const [markdown, setMarkdown] = useState("")
   const [hasAutoCopied, setHasAutoCopied] = useState(false)
   const [pendingAutoCopy, setPendingAutoCopy] = useState(false)
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit")
+  const [showHistory, setShowHistory] = useState(false)
+  const [inspectedItem, setInspectedItem] = useState<CollectionItem | null>(null)
+  const [confirmClearAll, setConfirmClearAll] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [copiedIcon, setCopiedIcon] = useState<
-    "markdown" | "prompt" | "download" | null
-  >(null)
+  const [copiedIcon, setCopiedIcon] = useState<"markdown" | "download" | null>(
+    null
+  )
   const [webhookSending, setWebhookSending] = useState(false)
-  const [webhookStatus, setWebhookStatus] = useState<"success" | "error" | null>(null)
+  const [webhookStatus, setWebhookStatus] = useState<"success" | "error" | null>(
+    null
+  )
   const [hasAutoSentWebhook, setHasAutoSentWebhook] = useState(false)
 
   const settingsRef = useRef<HTMLDivElement>(null)
@@ -93,21 +114,28 @@ export default function MarkdownPage() {
     }
   }, [pageData])
 
+  // Format active source (either inspected history/queue item or live pageData)
   useEffect(() => {
-    if (!pageData || !pageData.markdown) return
+    const activeSource = inspectedItem || pageData
+    if (!activeSource || !activeSource.markdown) return
 
     const finalMd = formatMarkdown(
-      pageData.markdown,
+      activeSource.markdown,
       {
-        title: pageData.title,
-        url: pageData.url,
-        date: pageData.date ? new Date(pageData.date) : undefined
+        title: activeSource.title,
+        url: activeSource.url,
+        date: activeSource.date ? new Date(activeSource.date) : undefined
       },
       toggles
     )
 
     setMarkdown(finalMd)
-  }, [pageData, toggles])
+  }, [pageData, inspectedItem, toggles])
+
+  const mergedCollectionMarkdown = useMemo(() => {
+    if (!showHistory || readyItems.length === 0) return ""
+    return mergeMarkdownItems(readyItems, toggles)
+  }, [showHistory, readyItems, toggles])
 
   const delegateCopyToContentScript = (
     text: string,
@@ -154,7 +182,6 @@ export default function MarkdownPage() {
       setTimeout(() => setStatus(""), 2000)
     }
 
-    // Try local copy first
     if (
       typeof navigator !== "undefined" &&
       navigator.clipboard &&
@@ -165,7 +192,7 @@ export default function MarkdownPage() {
         .then(() => {
           showSuccessStatus()
         })
-        .catch((localErr) => {
+        .catch(() => {
           delegateCopyToContentScript(text, showSuccessStatus, isAuto)
         })
     } else {
@@ -180,6 +207,7 @@ export default function MarkdownPage() {
 
   useEffect(() => {
     if (
+      !inspectedItem &&
       toggles.autoCopy &&
       !isCurrentUrlWhitelisted &&
       markdown &&
@@ -187,11 +215,18 @@ export default function MarkdownPage() {
     ) {
       copyMarkdown(markdown, true)
     }
-  }, [markdown, hasAutoCopied, toggles.autoCopy, isCurrentUrlWhitelisted])
+  }, [
+    markdown,
+    hasAutoCopied,
+    toggles.autoCopy,
+    isCurrentUrlWhitelisted,
+    inspectedItem
+  ])
 
   useEffect(() => {
     const handleFocus = () => {
       if (
+        !inspectedItem &&
         toggles.autoCopy &&
         !isCurrentUrlWhitelisted &&
         pendingAutoCopy &&
@@ -208,8 +243,21 @@ export default function MarkdownPage() {
     markdown,
     hasAutoCopied,
     toggles.autoCopy,
-    isCurrentUrlWhitelisted
+    isCurrentUrlWhitelisted,
+    inspectedItem
   ])
+
+  const triggerDownload = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "text/markdown" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   const handleCopy = () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) {
@@ -217,7 +265,13 @@ export default function MarkdownPage() {
       setTimeout(() => setStatus(""), 2000)
       return
     }
-    navigator.clipboard.writeText(markdown).then(() => {
+    const textToCopy = showHistory ? mergedCollectionMarkdown : markdown
+    if (!textToCopy) {
+      setStatus(showHistory ? "No ready items" : "Nothing to copy")
+      setTimeout(() => setStatus(""), 1500)
+      return
+    }
+    navigator.clipboard.writeText(textToCopy).then(() => {
       setStatus("Copied!")
       setCopiedIcon("markdown")
       setTimeout(() => {
@@ -227,38 +281,18 @@ export default function MarkdownPage() {
     })
   }
 
-  const handleCopyPrompt = () => {
-    if (typeof navigator === "undefined" || !navigator.clipboard) {
-      setStatus("Clipboard unavailable")
-      setTimeout(() => setStatus(""), 2000)
+  const handleDownload = () => {
+    const content = showHistory ? mergedCollectionMarkdown : markdown
+    if (!content) {
+      setStatus(showHistory ? "No ready items" : "Nothing to download")
+      setTimeout(() => setStatus(""), 1500)
       return
     }
-    const backtickMatches = markdown.match(/`+/g)
-    const maxBackticks = backtickMatches
-      ? backtickMatches.reduce((max, match) => Math.max(max, match.length), 0)
-      : 0
-    const backticks = "`".repeat(Math.max(3, maxBackticks + 1))
-    const promptText = `${backticks}markdown\n${markdown}\n${backticks}`
-    navigator.clipboard.writeText(promptText).then(() => {
-      setStatus("Copied as Prompt!")
-      setCopiedIcon("prompt")
-      setTimeout(() => {
-        setStatus("")
-        setCopiedIcon(null)
-      }, 1500)
-    })
-  }
-
-  const handleDownload = () => {
-    const blob = new Blob([markdown], { type: "text/markdown" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${pageData?.title ? pageData.title.replace(/\s+/g, "_") : "page"}.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const activeTitle = showHistory
+      ? "pagemark-collection"
+      : (inspectedItem || pageData)?.title
+    const filename = `${activeTitle ? activeTitle.replace(/\s+/g, "_") : "page"}.md`
+    triggerDownload(content, filename)
 
     setStatus("Downloaded!")
     setCopiedIcon("download")
@@ -268,8 +302,42 @@ export default function MarkdownPage() {
     }, 1500)
   }
 
+  const handleCopyItem = (item: CollectionItem) => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return
+    const formatted = formatMarkdown(
+      item.markdown,
+      {
+        title: item.title,
+        url: item.url,
+        date: item.date ? new Date(item.date) : undefined
+      },
+      toggles
+    )
+    navigator.clipboard.writeText(formatted).then(() => {
+      setStatus("Copied item!")
+      setTimeout(() => setStatus(""), 1500)
+    })
+  }
+
+  const handleDownloadItem = (item: CollectionItem) => {
+    const formatted = formatMarkdown(
+      item.markdown,
+      {
+        title: item.title,
+        url: item.url,
+        date: item.date ? new Date(item.date) : undefined
+      },
+      toggles
+    )
+    const filename = `${item.title ? item.title.replace(/\s+/g, "_") : "page"}.md`
+    triggerDownload(formatted, filename)
+    setStatus("Downloaded!")
+    setTimeout(() => setStatus(""), 1500)
+  }
+
   const handleSendWebhook = () => {
     if (!toggles.webhookUrl) return
+    const activeSource = inspectedItem || pageData
     setWebhookSending(true)
     setWebhookStatus(null)
     setStatus("Sending webhook...")
@@ -278,11 +346,11 @@ export default function MarkdownPage() {
     chrome.runtime.sendMessage(
       {
         action: PM_MESSAGES.TRIGGER_WEBHOOK,
-        markdown,
-        title: pageData?.title,
-        url: pageData?.url,
-        author: pageData?.author,
-        date: pageData?.date,
+        markdown: showHistory ? mergedCollectionMarkdown : markdown,
+        title: showHistory ? "Merged Collection" : activeSource?.title,
+        url: showHistory ? "" : activeSource?.url,
+        author: showHistory ? "" : activeSource?.author,
+        date: showHistory ? new Date().toISOString() : activeSource?.date,
         webhookUrl: toggles.webhookUrl,
         webhookHeaders: toggles.webhookHeaders
       },
@@ -310,6 +378,7 @@ export default function MarkdownPage() {
 
   useEffect(() => {
     if (
+      !inspectedItem &&
       toggles.autoWebhook &&
       toggles.webhookUrl &&
       markdown &&
@@ -317,7 +386,13 @@ export default function MarkdownPage() {
     ) {
       handleSendWebhook()
     }
-  }, [markdown, hasAutoSentWebhook, toggles.autoWebhook, toggles.webhookUrl, handleSendWebhook])
+  }, [
+    markdown,
+    hasAutoSentWebhook,
+    toggles.autoWebhook,
+    toggles.webhookUrl,
+    inspectedItem
+  ])
 
   const handleHeaderChange = (
     index: number,
@@ -347,28 +422,169 @@ export default function MarkdownPage() {
     }))
   }
 
-  const tokenEstimate = Math.ceil(markdown.length / 4)
+  const handleHistoryToggleButton = () => {
+    if (inspectedItem) {
+      setInspectedItem(null)
+      setShowHistory(true)
+      return
+    }
+    setShowHistory((prev) => !prev)
+  }
+
+  const handleClearAction = () => {
+    if (showHistory) {
+      if (allItems.length > 0) {
+        setConfirmClearAll(true)
+      }
+      return
+    }
+    setMarkdown("")
+  }
+
+  const handleConfirmDialog = () => {
+    clearAll()
+    setConfirmClearAll(false)
+  }
+
+  const activeText = showHistory ? mergedCollectionMarkdown : markdown
+  const tokenEstimate = Math.ceil(activeText.length / 4)
+  const isShowingBack = showHistory || Boolean(inspectedItem)
 
   return (
     <div className="h-screen flex flex-col bg-zinc-950 text-zinc-100 overflow-hidden font-sans relative">
-      <header className="relative px-3 py-3 border-b border-zinc-900/30 bg-zinc-900/60 backdrop-blur-md flex flex-col z-10 shrink-0 shadow-sm select-none">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="font-semibold text-sm tracking-tight bg-gradient-to-r from-slate-400 to-teal-500 bg-clip-text text-transparent truncate">
-              Pagemark
-            </span>
-            {status && (
-              <span className="text-[9px] text-slate-400 px-1.5 py-0.5 rounded bg-slate-950/40 border border-slate-900/30 animate-pulse truncate">
-                {status}
-              </span>
+      <header className="relative px-3 py-2.5 border-b border-zinc-900/40 bg-zinc-900/60 backdrop-blur-md flex flex-col gap-2 z-10 shrink-0 shadow-sm select-none">
+        <div className="flex items-center gap-1.5 w-full">
+          <button
+            onClick={handleCopy}
+            className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-medium shadow-[0_2px_8px_-3px_rgba(16,185,129,0.3)] transition-all duration-200 active:scale-[0.98] outline-none">
+            {copiedIcon === "markdown" ? (
+              <CheckIcon className="w-3.5 h-3.5" />
+            ) : (
+              <CopyIcon className="w-3.5 h-3.5 opacity-90" />
             )}
-          </div>
+            Copy
+          </button>
+
+          <button
+            onClick={handleHistoryToggleButton}
+            className={`flex-1 group inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg border transition-all duration-200 active:scale-[0.98] outline-none ${
+              isShowingBack
+                ? "bg-zinc-800 border-zinc-700 text-zinc-100"
+                : "bg-zinc-850 hover:bg-zinc-800 border-zinc-800 text-zinc-200"
+            }`}>
+            {isShowingBack ? (
+              <ArrowLeftIcon className="w-3.5 h-3.5 opacity-90" />
+            ) : (
+              <HistoryIcon className="w-3.5 h-3.5 opacity-80" />
+            )}
+            {isShowingBack ? "Back" : "History"}
+          </button>
+
+          {toggles.webhookUrl && (
+            <button
+              onClick={handleSendWebhook}
+              disabled={webhookSending}
+              className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 transition-all duration-200 active:scale-[0.98] outline-none disabled:opacity-50">
+              {webhookSending ? (
+                <svg
+                  className="animate-spin h-3.5 w-3.5 text-zinc-400"
+                  fill="none"
+                  viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+              ) : webhookStatus === "success" ? (
+                <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
+              ) : webhookStatus === "error" ? (
+                <span className="text-red-500 font-bold">!</span>
+              ) : (
+                <SendIcon className="w-3.5 h-3.5 opacity-90" />
+              )}
+              Webhook
+            </button>
+          )}
+
+          <button
+            onClick={handleDownload}
+            aria-label="Download"
+            title="Download"
+            className="inline-flex items-center justify-center p-1.5 rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 transition-all duration-200 active:scale-[0.98] outline-none shrink-0">
+            {copiedIcon === "download" ? (
+              <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <DownloadIcon className="w-3.5 h-3.5 opacity-90" />
+            )}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between w-full">
+          {showHistory ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[11px] font-medium text-zinc-300 truncate">
+                History & Queue
+              </span>
+            </div>
+          ) : (
+            <div className="flex p-0.5 bg-zinc-950/70 border border-zinc-800/80 rounded-lg">
+              <button
+                onClick={() => setViewMode("edit")}
+                className={`px-3 py-1 text-[10px] font-medium transition-all rounded-md ${
+                  viewMode === "edit"
+                    ? "bg-slate-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}>
+                Editor
+              </button>
+              <button
+                onClick={() => setViewMode("preview")}
+                className={`px-3 py-1 text-[10px] font-medium transition-all rounded-md ${
+                  viewMode === "preview"
+                    ? "bg-slate-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}>
+                Preview
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-1">
+            <button
+              onClick={handleClearAction}
+              aria-label={showHistory ? "Clear All" : "Clear"}
+              title={showHistory ? "Clear All" : "Clear"}
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-800/60 transition-colors outline-none">
+              <TrashIcon className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={() => triggerConversion()}
+              aria-label="Refresh"
+              title="Refresh"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 transition-colors outline-none">
+              <RefreshIcon className="w-3.5 h-3.5" />
+            </button>
+
             <div className="relative" ref={settingsRef}>
               <button
                 onClick={() => setShowSettings(!showSettings)}
+                aria-label="Settings & Filters"
                 title="Settings & Filters"
-                className={`p-1.5 rounded-lg transition-colors outline-none ${showSettings ? "text-slate-400 bg-zinc-850" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"}`}>
+                className={`p-1.5 rounded-lg transition-colors outline-none ${
+                  showSettings
+                    ? "text-slate-400 bg-zinc-850"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+                }`}>
                 <SettingsIcon className="w-3.5 h-3.5" />
               </button>
               {showSettings && (
@@ -487,9 +703,7 @@ export default function MarkdownPage() {
                   </label>
                   {toggles.showPageMap && (
                     <div className="flex items-center justify-between text-xs text-zinc-400 pl-6 pr-1.5 py-1">
-                      <span className="flex items-center gap-2">
-                        Format
-                      </span>
+                      <span className="flex items-center gap-2">Format</span>
                       <select
                         value={toggles.pageMapStyle || "text"}
                         onChange={(e) =>
@@ -518,14 +732,7 @@ export default function MarkdownPage() {
                         stroke="currentColor"
                         strokeWidth="2"
                         viewBox="0 0 24 24">
-                        <rect
-                          x="9"
-                          y="9"
-                          width="13"
-                          height="13"
-                          rx="2"
-                          ry="2"
-                        />
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                       </svg>
                       Auto-copy on Tab Switch
@@ -625,89 +832,42 @@ export default function MarkdownPage() {
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-1.5 mt-2.5 w-full">
-          <button
-            onClick={handleCopy}
-            className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-medium shadow-[0_2px_8px_-3px_rgba(16,185,129,0.3)] transition-all duration-200 active:scale-[0.98] outline-none">
-            {copiedIcon === "markdown" ? (
-              <CheckIcon className="w-3.5 h-3.5" />
-            ) : (
-              <CopyIcon className="w-3.5 h-3.5 opacity-90" />
-            )}
-            Copy MD
-          </button>
-          {toggles.webhookUrl && (
-            <button
-              onClick={handleSendWebhook}
-              disabled={webhookSending}
-              className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 transition-all duration-200 active:scale-[0.98] outline-none disabled:opacity-50">
-              {webhookSending ? (
-                <svg className="animate-spin h-3.5 w-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : webhookStatus === "success" ? (
-                <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
-              ) : webhookStatus === "error" ? (
-                <span className="text-red-500 font-bold">!</span>
-              ) : (
-                <SendIcon className="w-3.5 h-3.5 opacity-90" />
-              )}
-              Webhook
-            </button>
-          )}
-          <button
-            onClick={handleCopyPrompt}
-            className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 transition-all duration-200 active:scale-[0.98] outline-none">
-            {copiedIcon === "prompt" ? (
-              <CheckIcon className="w-3.5 h-3.5 text-slate-400" />
-            ) : (
-              <CopyIcon className="w-3.5 h-3.5 opacity-70" />
-            )}
-            Prompt
-          </button>
-          <button
-            onClick={handleDownload}
-            className="flex-1 group inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] rounded-lg bg-zinc-850 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 transition-all duration-200 active:scale-[0.98] outline-none">
-            {copiedIcon === "download" ? (
-              <CheckIcon className="w-3.5 h-3.5 text-slate-400" />
-            ) : (
-              <DownloadIcon className="w-3.5 h-3.5 opacity-90" />
-            )}
-            Download
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between w-full mt-2.5 pt-2 border-t border-zinc-900/30">
-          <div className="flex p-0.5 bg-zinc-950/60 border border-zinc-900/30 rounded-lg">
-            <button
-              onClick={() => setViewMode("edit")}
-              className={`px-3 py-1 text-[10px] font-medium transition-all rounded-md flex items-center gap-1 ${viewMode === "edit" ? "bg-zinc-850 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
-              Editor
-            </button>
-            <button
-              onClick={() => setViewMode("preview")}
-              className={`px-3 py-1 text-[10px] font-medium transition-all rounded-md flex items-center gap-1 ${viewMode === "preview" ? "bg-zinc-850 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
-              Preview
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-mono">
-            <span>~{tokenEstimate.toLocaleString()} tokens</span>
-            <span className="w-px h-2.5 bg-zinc-900/40" />
-            <span>{markdown.length.toLocaleString()} chars</span>
-          </div>
-        </div>
       </header>
 
-      {error && (
+      {error && !showHistory && !inspectedItem && (
         <div className="px-3 py-2 text-xs text-red-400 bg-red-950/40 border-b border-red-900/40 shrink-0">
           {error}
         </div>
       )}
 
-      <main className="flex-1 min-h-0 bg-zinc-950 p-2 relative">
-        {!hasHostPermission ? (
+      {inspectedItem && !showHistory && (
+        <div className="px-3 py-1.5 text-[10px] text-slate-300 bg-slate-900/40 border-b border-slate-800/40 flex items-center justify-between gap-2 shrink-0">
+          <span className="truncate">
+            Viewing saved item: {inspectedItem.title || inspectedItem.url}
+          </span>
+        </div>
+      )}
+
+      <main className="flex-1 min-h-0 bg-zinc-950 p-2 relative flex flex-col">
+        {showHistory ? (
+          <HistoryQueueView
+            clipWhitelist={toggles.clipWhitelist || ""}
+            onChangeClipWhitelist={(val) =>
+              setToggles((prev) => ({ ...prev, clipWhitelist: val }))
+            }
+            items={allItems}
+            quotaStatus={quotaStatus}
+            onEnqueueUrl={enqueueUrl}
+            onClipAllTabs={clipAllTabs}
+            onSelectItem={(item) => {
+              setInspectedItem(item)
+              setShowHistory(false)
+            }}
+            onCopyItem={handleCopyItem}
+            onDownloadItem={handleDownloadItem}
+            onRemoveItem={removeItem}
+          />
+        ) : !hasHostPermission ? (
           <div className="h-full rounded-xl border border-zinc-900/50 bg-zinc-900/10 flex flex-col justify-center items-center p-6 text-center select-none shadow-sm">
             <svg
               className="w-10 h-10 text-slate-500 mb-3 opacity-80"
@@ -736,17 +896,6 @@ export default function MarkdownPage() {
           </div>
         ) : viewMode === "edit" ? (
           <div className="h-full rounded-xl border border-zinc-900/50 bg-zinc-900/10 flex flex-col overflow-hidden shadow-sm">
-            <div className="px-3 py-1.5 text-[10px] font-semibold text-zinc-500 border-b border-zinc-900/40 bg-zinc-900/30 flex justify-between items-center select-none">
-              <span>Markdown Editor</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setMarkdown("")}
-                  className="hover:text-red-400 transition-colors flex items-center gap-1 group">
-                  <TrashIcon className="w-3 h-3 opacity-70 group-hover:opacity-100" />
-                  <span>Clear</span>
-                </button>
-              </div>
-            </div>
             <textarea
               value={markdown}
               spellCheck={false}
@@ -757,9 +906,6 @@ export default function MarkdownPage() {
           </div>
         ) : (
           <div className="h-full rounded-xl border border-zinc-900/50 bg-zinc-900/10 flex flex-col overflow-hidden shadow-sm">
-            <div className="px-3 py-1.5 text-[10px] font-semibold text-zinc-500 border-b border-zinc-900/40 bg-zinc-900/30 select-none">
-              Live Preview
-            </div>
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5">
               <article className="md-preview prose prose-invert prose-xs text-[15px] leading-relaxed max-w-none prose-headings:text-zinc-200 prose-headings:font-medium prose-headings:tracking-tight prose-h1:text-lg prose-h2:text-base prose-h3:text-sm prose-p:text-zinc-400 prose-a:text-slate-400 prose-a:no-underline hover:prose-a:underline prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-zinc-800 prose-strong:text-zinc-200 prose-code:rounded prose-li:text-zinc-400 prose-ul:marker:text-zinc-600 prose-ol:marker:text-zinc-600 prose-blockquote:border-l-zinc-700 prose-blockquote:text-zinc-400 prose-blockquote:font-normal prose-blockquote:not-italic prose-hr:border-zinc-800 prose-pre:leading-none prose-p:my-0 prose-hr:my-3">
                 {" "}
@@ -769,6 +915,36 @@ export default function MarkdownPage() {
           </div>
         )}
       </main>
+
+      <footer className="px-3 py-1.5 border-t border-zinc-900/40 bg-zinc-900/60 backdrop-blur-md flex items-center justify-between text-[10px] text-zinc-500 font-mono shrink-0 select-none">
+        <div className="flex items-center gap-2 min-w-0">
+          <span>
+            {activeText.length.toLocaleString()} chars | ~
+            {tokenEstimate.toLocaleString()} tokens
+          </span>
+          {status && (
+            <span className="text-[9px] text-slate-300 px-1.5 py-0.5 rounded bg-slate-950/60 border border-slate-800/60 truncate font-sans">
+              {status}
+            </span>
+          )}
+        </div>
+        <div className="shrink-0">
+          {showHistory ? (
+            <span>
+              {allItems.length} {allItems.length === 1 ? "item" : "items"}
+            </span>
+          ) : null}
+        </div>
+      </footer>
+
+      <ConfirmDialog
+        open={confirmClearAll}
+        title="Clear All Saved & Queued Items?"
+        message="This will permanently remove all saved history and queued items."
+        confirmLabel="Clear All"
+        onConfirm={handleConfirmDialog}
+        onCancel={() => setConfirmClearAll(false)}
+      />
     </div>
   )
 }

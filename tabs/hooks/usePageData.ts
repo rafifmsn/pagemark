@@ -27,7 +27,7 @@ export function usePageData() {
     }
   }
 
-  const triggerConversion = () => {
+  const triggerConversion = (options?: { waitForSettle?: boolean }) => {
     setStatus("Clipping...")
     setError("")
     checkHostPermission()
@@ -49,7 +49,7 @@ export function usePageData() {
         if (activeTab?.id) {
           chrome.tabs.sendMessage(
             activeTab.id,
-            { action: PM_MESSAGES.CONVERT },
+            { action: PM_MESSAGES.CONVERT, waitForSettle: options?.waitForSettle },
             (response) => {
               if (chrome.runtime?.lastError) {
                 setStatus("")
@@ -114,11 +114,13 @@ export function usePageData() {
           triggerConversion()
         }
         tabUpdatedListener = (tabId: number, changeInfo: any) => {
-          if (changeInfo.status === "complete") {
+          if (changeInfo.status === "complete" || changeInfo.url) {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
               const activeTab = tabs?.[0]
               if (activeTab?.id === tabId) {
-                triggerConversion()
+                triggerConversion({
+                  waitForSettle: Boolean(changeInfo.url) && changeInfo.status !== "complete"
+                })
               }
             })
           }
