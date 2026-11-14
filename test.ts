@@ -12,8 +12,17 @@ globalThis.NodeFilter = dom.NodeFilter as any
 
 import { isRestrictedUrl, isUrlWhitelisted } from "./lib/url.ts"
 import {
+  normalizeQueueUrl,
+  upsertHistoryItem,
+  upsertQueueItems,
+  mergeUniqueCollectionItems,
+  getQuotaStatus
+} from "./lib/collection.ts"
+import {
   parseHtmlToMarkdown,
   formatMarkdown,
+  mergeMarkdownItems,
+  unwrapLeadingFrontMatter,
   generatePageMap,
   slugify,
   stripImagesFromMarkdown,
@@ -160,6 +169,161 @@ describe("End-to-End Extraction - parseHtmlToMarkdown & formatMarkdown", () => {
     assert.ok(formatted.includes('source: "https://example.com/doc"'))
     assert.ok(formatted.includes("date: "))
     assert.ok(formatted.includes("## Section\nContent here."))
+  })
+})
+
+describe("Merged Collection Export - unwrapLeadingFrontMatter & mergeMarkdownItems", () => {
+  it("should unwrap leading frontmatter fences without leaving trailing ---", () => {
+    const input = "---\ntitle: \"Sample\"\nsource: \"https://example.com\"\n---\n\nBody text"
+    const unwrapped = unwrapLeadingFrontMatter(input)
+    assert.equal(unwrapped.startsWith("---"), false)
+    assert.ok(unwrapped.includes('title: "Sample"'))
+    assert.ok(unwrapped.includes("\n\nBody text"))
+  })
+
+  it("should handle plain markdown, CRLF fences, and empty frontmatter", () => {
+    assert.equal(unwrapLeadingFrontMatter("  Plain text  "), "Plain text")
+    const crlf = "---\r\ntitle: \"CRLF\"\r\n---\r\n\r\nContent"
+    assert.equal(unwrapLeadingFrontMatter(crlf), 'title: "CRLF"\n\nContent')
+  })
+
+  it("should return empty string when merging empty items and singular label for 1 page", () => {
+    assert.equal(mergeMarkdownItems([]), "")
+    const single = mergeMarkdownItems([{ title: "Only", url: "https://example.com", markdown: "Body" }])
+    assert.ok(single.startsWith('---\ntitle: "Merged Collection (1 page)"'))
+  })
+
+  it("should merge multiple items with one master frontmatter and --- delimiters", () => {
+    const merged = mergeMarkdownItems(
+      [
+        {
+          title: "First Page",
+          url: "https://example.com/1",
+          markdown: "First body ![img](https://example.com/a.png) content."
+        },
+        {
+          title: "Second Page",
+          url: "https://example.com/2",
+          markdown: "---\ntitle: \"Nested\"\n---\n\nSecond body content."
+        }
+      ],
+      { showSourceUrl: true, includeImages: false }
+    )
+
+    assert.ok(merged.startsWith('---\ntitle: "Merged Collection (2 pages)"'))
+    assert.ok(merged.includes("# First Page\nSource: https://example.com/1"))
+    assert.ok(merged.includes("# Second Page\nSource: https://example.com/2"))
+    assert.ok(!merged.includes("![img]"))
+    assert.ok(merged.includes("\n\n---\n\n"))
+    assert.equal(merged.match(/^title: "Merged Collection/gm)?.length, 1)
+  })
+})
+
+describe("Collection Helpers - normalizeQueueUrl, upsertHistoryItem, getQuotaStatus", () => {
+  it("should normalize valid URLs and reject restricted, non-http, or invalid ones", () => {
+    assert.equal(normalizeQueueUrl("example.com/docs", isRestrictedUrl).url, "https://example.com/docs")
+    assert.equal(normalizeQueueUrl("https://github.com/rafifmsn", isRestrictedUrl).url, "https://github.com/rafifmsn")
+    assert.equal(normalizeQueueUrl("chrome://settings", isRestrictedUrl).url, null)
+    assert.equal(normalizeQueueUrl("ftp://example.com/file", isRestrictedUrl).url, null)
+    assert.equal(normalizeQueueUrl("javascript:alert(1)", isRestrictedUrl).url, null)
+    assert.equal(normalizeQueueUrl("not a valid url", isRestrictedUrl).url, null)
+    assert.equal(normalizeQueueUrl("   ", isRestrictedUrl).url, null)
+  })
+
+  it("should filter out restricted and whitelisted URLs for bulk tab clipping", () => {
+    const tabUrls = [
+      "chrome://extensions",
+      "https://mail.google.com/mail/u/0",
+      "https://example.com/blog",
+      "https://github.com/rafifmsn/pagemark"
+    ]
+    const whitelist = "*.google.com, example.com"
+    const clippable = tabUrls.filter(
+      (url) => !isRestrictedUrl(url) && !isUrlWhitelisted(url, whitelist)
+    )
+    assert.deepEqual(clippable, ["https://github.com/rafifmsn/pagemark"])
+  })
+
+  it("should deduplicate history items by URL and keep most recent first", () => {
+    const first = upsertHistoryItem([], {
+      url: "https://example.com/a",
+      title: "Page A",
+      markdown: "Content A"
+    })
+    const second = upsertHistoryItem(first, {
+      url: "https://example.com/b",
+      title: "Page B",
+      markdown: "Content B"
+    })
+    const updatedA = upsertHistoryItem(second, {
+      url: "https://example.com/a",
+      title: "Page A Updated",
+      markdown: "Content A v2"
+    })
+
+    assert.equal(updatedA.length, 2)
+    assert.equal(updatedA[0].title, "Page A Updated")
+    assert.equal(updatedA[1].title, "Page B")
+  })
+
+  it("should calculate quota status accurately including near-quota threshold", () => {
+    const emptyStatus = getQuotaStatus([], [])
+    assert.equal(emptyStatus.isNearQuota, false)
+    assert.ok(emptyStatus.bytes > 0)
+
+    const largeItem = {
+      id: "q_big",
+      url: "https://example.com/big",
+      title: "Big",
+      markdown: "a".repeat(8_500_000),
+      savedAt: 1,
+      status: "ready" as const,
+      source: "queue" as const
+    }
+    const nearStatus = getQuotaStatus([], [largeItem])
+    assert.equal(nearStatus.isNearQuota, true)
+  })
+
+  it("should deduplicate queue items by URL and merge unique items across queue and history", () => {
+    const olderQueue = [
+      {
+        id: "q1",
+        url: "https://example.com/a",
+        title: "Old A",
+        markdown: "old",
+        savedAt: 100,
+        status: "ready" as const,
+        source: "queue" as const
+      }
+    ]
+    const newerQueue = upsertQueueItems(olderQueue, [
+      {
+        id: "q2",
+        url: "https://example.com/a",
+        title: "New A",
+        markdown: "new",
+        savedAt: 200,
+        status: "ready" as const,
+        source: "queue" as const
+      }
+    ])
+    assert.equal(newerQueue.length, 1)
+    assert.equal(newerQueue[0].title, "New A")
+
+    const history = [
+      {
+        id: "h1",
+        url: "https://example.com/a",
+        title: "History A",
+        markdown: "hist",
+        savedAt: 150,
+        status: "ready" as const,
+        source: "history" as const
+      }
+    ]
+    const merged = mergeUniqueCollectionItems(newerQueue, history)
+    assert.equal(merged.length, 1)
+    assert.equal(merged[0].title, "New A")
   })
 })
 

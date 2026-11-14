@@ -11,7 +11,10 @@ export const PM_MESSAGES = {
   PAGE_CONVERTED: "pm:page-converted",
   COPY_TO_CLIPBOARD: "pm:copy-to-clipboard",
   TOGGLE_SIDEPANEL: "pm:toggle-sidepanel",
-  TRIGGER_WEBHOOK: "pm:trigger-webhook"
+  TRIGGER_WEBHOOK: "pm:trigger-webhook",
+  QUEUE_URL: "pm:queue-url",
+  CLIP_URL_BACKGROUND: "pm:clip-url-background",
+  CLIP_ALL_TABS: "pm:clip-all-tabs"
 } as const
 
 export type PMMessageAction = typeof PM_MESSAGES[keyof typeof PM_MESSAGES]

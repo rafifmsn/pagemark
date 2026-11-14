@@ -296,6 +296,75 @@ export function formatMarkdown(
   return finalMd
 }
 
+export interface MergeableMarkdownItem {
+  title?: string
+  url?: string
+  date?: string
+  markdown: string
+}
+
+const LEADING_FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
+
+/**
+ * Strips leading YAML frontmatter fences while preserving inner metadata lines
+ * separated by a blank line so trailing `---` never becomes a Setext heading.
+ */
+export function unwrapLeadingFrontMatter(markdown: string): string {
+  const trimmed = markdown.trim()
+  const match = trimmed.match(LEADING_FRONTMATTER_RE)
+  if (!match) return trimmed
+
+  const innerMeta = match[1].trim()
+  const rest = trimmed.slice(match[0].length).trim()
+  if (!innerMeta) return rest
+  return rest ? `${innerMeta}\n\n${rest}` : innerMeta
+}
+
+/**
+ * Merges multiple clipped pages into one Markdown document with a single
+ * master frontmatter block and `---` section delimiters.
+ */
+export function mergeMarkdownItems(
+  items: MergeableMarkdownItem[],
+  options: FormatOptions = {}
+): string {
+  if (items.length === 0) return ""
+
+  const masterFrontMatter = generateFrontMatter({
+    title: `Merged Collection (${items.length} ${items.length === 1 ? "page" : "pages"})`,
+    date: new Date(),
+    showTitle: true,
+    showDate: true,
+    showSourceUrl: false
+  }).trimEnd()
+
+  const bodyOptions: FormatOptions = {
+    ...options,
+    showTitle: false,
+    showDate: false,
+    showSourceUrl: false
+  }
+
+  const sections = items.map((item) => {
+    const formatted = formatMarkdown(
+      item.markdown,
+      {
+        title: item.title,
+        url: item.url,
+        date: item.date ? new Date(item.date) : undefined
+      },
+      bodyOptions
+    )
+    const sanitized = unwrapLeadingFrontMatter(formatted)
+    const heading = item.title || item.url || "Untitled"
+    const sourceLine =
+      options.showSourceUrl !== false && item.url ? `\nSource: ${item.url}` : ""
+    return `# ${heading}${sourceLine}\n\n${sanitized}`.trim()
+  })
+
+  return [masterFrontMatter, ...sections].join("\n\n---\n\n")
+}
+
 export function parseHtmlToMarkdown(
   html: string,
   options?: PagemarkOptions

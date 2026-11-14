@@ -21,11 +21,11 @@ Pagemark instantly strips away tracking banners, ads, navigation menus, and cook
 * **Editor & Live Token Counter:** Switch seamlessly between a raw Markdown editor and a fully rendered visual preview. Built-in character and token counters help you monitor size limits before pasting into AI interfaces.
 * **Persistent Customization:** Tailor the extraction to your exact needs. Toggle images, hyperlinks, code blocks, or tables on/off. Auto-inject independent metadata headers (title, source URL, conversion date), generate a clean hierarchical outline map (Plain Text or Clickable TOC), or configure custom HTTPS webhooks with headers (e.g. Bearer auth) to safely push markdown directly to your external knowledge base.
 
-**Optimized Export Utilities**
+**Optimized Collection & Export Utilities**
 
-* **Copy MD:** Copies raw, standardized Markdown directly to your clipboard.
-* **Copy as Prompt:** Automatically wraps the text in a clean container to prevent nested triple-backticks from breaking LLM parsers.
-* **Download File:** Saves the structured output natively as a standalone .md file.
+* **Copy:** Copies raw, standardized Markdown (or all ready queued items merged with a single master front matter) directly to your clipboard.
+* **History & URL Queue:** Queue links via the "Queue link in Pagemark" right-click menu, add URLs manually, or run "Clip All Open Tabs" with customizable whitelist exclusions.
+* **Download File:** Saves the single page or merged collection natively as a standalone .md file.
 
 **Privacy & Performance First**
 

@@ -7,17 +7,29 @@ export const config: PlasmoCSConfig = {
   run_at: "document_start"
 }
 
-function convertPageToMarkdown() {
-  const html = document.documentElement.outerHTML
+const SPA_SETTLE_DEBOUNCE_MS = 450
+const SPA_SETTLE_MAX_WAIT_MS = 2000
+
+let lastObservedHref = typeof window !== "undefined" ? window.location.href : ""
+let spaDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let spaMaxWaitTimer: ReturnType<typeof setTimeout> | null = null
+let pendingSpaExtraction = false
+
+function extractPageData() {
+  const html = document.documentElement ? document.documentElement.outerHTML : ""
   const result = parseHtmlToMarkdown(html, { url: window.location.href })
-  
-  const pageData = {
+
+  return {
     markdown: result.markdown,
     title: result.title || document.title || "",
     author: result.author,
     date: result.date,
     url: result.url || window.location.href || ""
   }
+}
+
+function convertPageToMarkdown() {
+  const pageData = extractPageData()
 
   chrome.storage.local.set({ pageData }, () => {
     if (chrome.runtime.lastError) {
@@ -28,6 +40,76 @@ function convertPageToMarkdown() {
     })
   })
 }
+
+function flushSpaConversion() {
+  if (spaDebounceTimer) {
+    clearTimeout(spaDebounceTimer)
+    spaDebounceTimer = null
+  }
+  if (spaMaxWaitTimer) {
+    clearTimeout(spaMaxWaitTimer)
+    spaMaxWaitTimer = null
+  }
+  if (!pendingSpaExtraction) return
+  pendingSpaExtraction = false
+  lastObservedHref = window.location.href
+  convertPageToMarkdown()
+}
+
+function scheduleSpaConversion(isRouteChange: boolean) {
+  if (isRouteChange) {
+    pendingSpaExtraction = true
+    if (!spaMaxWaitTimer) {
+      spaMaxWaitTimer = setTimeout(flushSpaConversion, SPA_SETTLE_MAX_WAIT_MS)
+    }
+  }
+
+  if (!pendingSpaExtraction) return
+
+  if (spaDebounceTimer) {
+    clearTimeout(spaDebounceTimer)
+  }
+  spaDebounceTimer = setTimeout(flushSpaConversion, SPA_SETTLE_DEBOUNCE_MS)
+}
+
+function handlePossibleRouteChange() {
+  const currentHref = window.location.href
+  if (currentHref !== lastObservedHref) {
+    lastObservedHref = currentHref
+    scheduleSpaConversion(true)
+  }
+}
+
+function setupSpaObserver() {
+  if (typeof window === "undefined" || typeof document === "undefined") return
+
+  window.addEventListener("popstate", () => scheduleSpaConversion(true))
+  window.addEventListener("hashchange", () => scheduleSpaConversion(true))
+
+  const attachObserver = () => {
+    if (!document.documentElement) return
+    const observer = new MutationObserver(() => {
+      if (window.location.href !== lastObservedHref) {
+        lastObservedHref = window.location.href
+        scheduleSpaConversion(true)
+      } else if (pendingSpaExtraction) {
+        scheduleSpaConversion(false)
+      }
+    })
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true
+    })
+  }
+
+  if (document.documentElement) {
+    attachObserver()
+  } else {
+    document.addEventListener("DOMContentLoaded", attachObserver, { once: true })
+  }
+}
+
+setupSpaObserver()
 
 function execCopyFallback(text: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -65,7 +147,27 @@ function copyTextToClipboard(text: string): Promise<void> {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === PM_MESSAGES.CONVERT) {
-    convertPageToMarkdown()
+    if (request.returnOnly) {
+      const pageData = extractPageData()
+      sendResponse({ success: true, pageData })
+      return false
+    }
+
+    if (request.waitForSettle) {
+      lastObservedHref = window.location.href
+      scheduleSpaConversion(true)
+    } else if (document.readyState === "loading") {
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          handlePossibleRouteChange()
+          convertPageToMarkdown()
+        },
+        { once: true }
+      )
+    } else {
+      convertPageToMarkdown()
+    }
   } else if (request.action === PM_MESSAGES.COPY_TO_CLIPBOARD) {
     copyTextToClipboard(request.text)
       .then(() => {
