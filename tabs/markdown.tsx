@@ -530,9 +530,12 @@ export default function MarkdownPage() {
 
         <div className="flex items-center justify-between w-full">
           {showHistory ? (
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[11px] font-medium text-zinc-300 truncate">
                 History & Queue
+              </span>
+              <span className="text-[10px] text-zinc-500 font-mono shrink-0">
+                ({allItems.length})
               </span>
             </div>
           ) : (
@@ -930,8 +933,10 @@ export default function MarkdownPage() {
         </div>
         <div className="shrink-0">
           {showHistory ? (
-            <span>
-              {allItems.length} {allItems.length === 1 ? "item" : "items"}
+            <span
+              className={quotaStatus.isNearQuota ? "text-amber-400" : undefined}
+              title="Local storage usage out of 10 MB quota">
+              {quotaStatus.megabytes.toFixed(2)} / 10 MB
             </span>
           ) : null}
         </div>

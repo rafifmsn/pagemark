@@ -98,19 +98,6 @@ export function HistoryQueueView({
   return (
     <div className="h-full flex flex-col gap-2 overflow-hidden">
       <div className="rounded-xl border border-zinc-900/60 bg-zinc-900/30 p-2.5 flex flex-col gap-2 shrink-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-semibold text-zinc-400 tracking-wider">
-            URL Queue
-          </span>
-          <span
-            className={`text-[10px] font-mono ${
-              quotaStatus.isNearQuota ? "text-amber-400" : "text-zinc-500"
-            }`}
-            title="Local storage usage out of 10 MB quota">
-            {quotaStatus.megabytes.toFixed(2)} / 10 MB
-          </span>
-        </div>
-
         {quotaStatus.isNearQuota && (
           <div className="text-[10px] text-amber-300 bg-amber-950/40 border border-amber-800/40 rounded-lg px-2 py-1">
             Storage is near the 10 MB browser limit. Clear old items to avoid save failures.
