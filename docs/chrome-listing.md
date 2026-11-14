@@ -37,10 +37,10 @@ Features
   • Outline Map: Generate a clean hierarchical outline. Choose between Plain Text or Clickable TOC formats (with automatic gap collapsing).
   • Custom Webhooks: Specify a remote POST endpoint with custom key-value headers (e.g. Bearer auth) to safely push markdown straight from the V3 background service worker.
 
-📥 Versatile Prompt & Export Utilities
-- Copy MD: Grab raw, standardized Markdown to your clipboard in milliseconds.
-- Copy as Prompt: Automatically wraps the text in an error-free code block container, preventing nested triple-backticks from breaking ChatGPT/Claude parser interfaces.
-- Download File: Save the structured output natively as a standalone .md file.
+📥 Versatile Collection & Export Utilities
+- Copy: Grab raw, standardized Markdown (or all ready queued items merged with a single master front matter) to your clipboard in milliseconds.
+- History & URL Queue: Queue links via the "Queue link in Pagemark" right-click menu, add URLs manually, or use "Clip All Open Tabs" with custom domain whitelist exclusions.
+- Download File: Save the single page or merged collection natively as a standalone .md file.
 
 ---------------------------------------------------------------------------------------
 

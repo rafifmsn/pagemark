@@ -16,15 +16,18 @@ Pagemark is a modern web extension designed for researchers, developers, and AI 
 1. **Navigate** to any webpage you want to clip.
 2. **Trigger**:
    - Right-click anywhere and select **"Pagemark this page"**, OR
+   - Right-click any hyperlink and select **"Queue link in Pagemark"** to clip it in the background without leaving your current tab, OR
    - Click the extension icon in your browser toolbar, OR
    - Press the hotkey **`Alt + K`** (or **`Option + K`** on macOS, configurable in `chrome://extensions/shortcuts` or `about:addons` on Firefox).
-3. **Clip & Copy**: The side panel opens instantly, showing the live markdown, which is automatically copied to your clipboard (optional) or ready to download.
+3. **Clip, Queue & Export**: The side panel opens instantly, showing the live markdown ready to copy, download, send via webhook, or manage in **History & Queue**.
 
 ## Features
 
 - **Co-existing Workspace**: Runs inside a native browser Side Panel (Chrome) or Sidebar (Firefox), letting you view, edit, and preview markdown side-by-side with your active webpage.
+- **SPA Navigation & Hydration Detection**: Automatically detects client-side route changes (`pushState`, `replaceState`, `popstate`, `hashchange`) with a debounced DOM settle window so single-page applications re-extract cleanly without a manual refresh.
 - **Smart Content Extraction**: Utilizes an isolated core readability parser to extract main body content while stripping out distracting ads, popups, and navigation bars.
-- **Live Markdown Preview**: Split tab view containing a raw **Markdown Editor** (with text area & character count) and a rendered **Live Preview** (with custom scrollable GFM tables).
+- **Editor & Live Preview**: Switch between a raw **Editor** and rendered **Live Preview** (with custom scrollable GFM tables), paired with a bottom character/token counter and quick **Clear** and **Refresh** controls.
+- **URL Queue & Bulk Open-Tab Clipping**: Open **History** to queue URLs manually, add links via the **"Queue link in Pagemark"** context menu, or run **Clip All Open Tabs** with an optional comma-separated **Whitelist** to skip specific domains (such as `*.google.com`). Duplicate URLs are automatically replaced with the latest clip, individual items can be clicked to inspect in the Editor/Preview view, and **Copy** / **Download** export all ready items merged into one Markdown document with a single master front matter block.
 - **Absolute Heading Outline Map**: Injects a clean hierarchy outline map representing the document heading structure. Supports both **Plain Text** formatting and **Clickable TOC links** (with slugified anchors), automatically collapsing gaps and excluding H1 for clean, opinionated readability.
 - **Defensive Guards**: Built-in blockades protecting against execution errors on internal browser/system URLs.
 - **Persistent Preferences**: All toggles and preferences are stored in local storage and auto-saved instantly:
